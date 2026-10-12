@@ -13,6 +13,7 @@ local cfg = {
     aim=false, silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
     god=false, fly=false, spd=60,
+    tpEnemy=false,
 }
 
 pcall(function()
@@ -284,6 +285,7 @@ local PS = sc(PP)
 cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
 
 local applyRapid, setFly
+local isVisible, target
 
 tog(AS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
 sld(AS, "Regular FOV", 30, 600, cfg.fov, 2, function(v) cfg.fov = v end)
@@ -303,8 +305,22 @@ tog(VS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
 tog(PS, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
 tog(PS, "Fly [WASD+Space]", cfg.fly, 2, function(v) cfg.fly=v; if setFly then setFly(v) end end)
 
-tog(MS, "Rapid Fire", false, 1, function(v) if applyRapid then applyRapid(v) end end)
-tog(MS, "Rejoin", false, 2, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
+tog(MS, "TP to Enemy", false, 1, function(v)
+    if v then
+        local t = target and target()
+        if t then
+            local c = LP.Character
+            local hr = c and c:FindFirstChild("HumanoidRootPart")
+            if hr then
+                hr.CFrame = CFrame.new(t.Position + Vector3.new(0, 3, 0))
+            end
+        end
+        task.delay(0.3, function() cfg.tpEnemy = false end)
+    end
+    cfg.tpEnemy = false
+end)
+tog(MS, "Rapid Fire", false, 2, function(v) if applyRapid then applyRapid(v) end end)
+tog(MS, "Rejoin", false, 3, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
 
 sel("AIM")
 
@@ -444,7 +460,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local function isVisible(targetPart)
+isVisible = function(targetPart)
     if not cfg.aimVisible then return true end
     local origin = Camera.CFrame.Position
     local dir = (targetPart.Position - origin)
@@ -457,11 +473,40 @@ local function isVisible(targetPart)
     return result.Instance == targetPart or result.Instance:IsDescendantOf(targetPart.Parent)
 end
 
-local function target()
+local function sameTeam(p)
+    if LP.Team ~= nil and p.Team ~= nil then
+        return LP.Team == p.Team
+    end
+    if LP.TeamColor ~= nil and p.TeamColor ~= nil then
+        if LP.TeamColor == p.TeamColor then return true end
+    end
+    local lpA = LP:GetAttribute("Team")
+    local pA  = p:GetAttribute("Team")
+    if lpA ~= nil and pA ~= nil then
+        return lpA == pA
+    end
+    local lc = LP.Character
+    local pc = p.Character
+    if lc and pc then
+        local lv = lc:FindFirstChild("Team")
+        local pv = pc:FindFirstChild("Team")
+        if lv and pv and lv:IsA("StringValue") and pv:IsA("StringValue") then
+            return lv.Value == pv.Value
+        end
+    end
+    local lpP = LP:FindFirstChild("Team")
+    local ppP = p:FindFirstChild("Team")
+    if lpP and ppP and lpP:IsA("StringValue") and ppP:IsA("StringValue") then
+        return lpP.Value == ppP.Value
+    end
+    return false
+end
+
+target = function()
     local best, bd = nil, cfg.fov
     local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP and p.Parent then
+        if p ~= LP and p.Parent and not sameTeam(p) then
             local c = p.Character
             local hd = c and c:FindFirstChild("Head")
             local hm = c and c:FindFirstChildOfClass("Humanoid")
