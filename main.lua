@@ -44,10 +44,10 @@ local Float = Instance.new("TextButton")
 Float.Size = UDim2.new(0,58,0,58)
 Float.Position = UDim2.new(0,30,0,120)
 Float.BackgroundColor3 = C.panel
-Float.Text = "evil"
+Float.Text = "Evil"
 Float.TextColor3 = C.accent
-Float.Font = Enum.Font.GothamBold
-Float.TextSize = 15
+Float.Font = Enum.Font.GothamBlack
+Float.TextSize = 14
 Float.AutoButtonColor = false
 Float.Parent = gui
 Instance.new("UICorner", Float).CornerRadius = UDim.new(1,0)
@@ -671,8 +671,7 @@ local function sameTeam(p)
     end
     local lpA = LP:GetAttribute("Team")
     local pA  = p:GetAttribute("Team")
-    if lpA ~= nil and pA ~= nil then
-        return lpA == pA
+    if lpA ~= nil and pA ~= nil then        return lpA == pA
     end
     local lc = LP.Character
     local pc = p.Character
