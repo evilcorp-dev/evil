@@ -684,4 +684,97 @@ function applyRapid(state)
     if not state then return end
     rapidConn = RunService.Heartbeat:Connect(function()
         local c = LP.Character
-        if
+        if not c then return end
+        for _, tool in ipairs(c:GetChildren()) do
+            if tool:IsA("Tool") then
+                pcall(function()
+                    if tool:FindFirstChild("FireRate") then tool.FireRate.Value = 0.01 end
+                    if tool:FindFirstChild("FireRate2") then tool.FireRate2.Value = 0.01 end
+                    if tool:FindFirstChild("Settings") and tool.Settings:FindFirstChild("FireRate") then
+                        tool.Settings.FireRate.Value = 0.01
+                    end
+                end)
+            end
+        end
+    end)
+end
+
+local function applyGod()
+    local c = LP.Character
+    if not c then return end
+    local hm = c:FindFirstChildOfClass("Humanoid")
+    if hm then
+        hm.MaxHealth = math.huge
+        hm.Health = math.huge
+        if not hm:GetAttribute("EvilGod") then
+            hm:SetAttribute("EvilGod", true)
+            hm.HealthChanged:Connect(function(v)
+                if cfg.god and v < math.huge then hm.Health = math.huge end
+            end)
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.god then applyGod() end
+end)
+
+function setFly(s)
+    local c = LP.Character
+    if not c then return end
+    local h = c:FindFirstChild("HumanoidRootPart")
+    if not h then return end
+    if s then
+        if not _G.EvilBV then
+            _G.EvilBV = Instance.new("BodyVelocity", h)
+            _G.EvilBV.MaxForce = Vector3.new(1e5,1e5,1e5)
+            _G.EvilBV.Velocity = Vector3.zero
+            _G.EvilBG = Instance.new("BodyGyro", h)
+            _G.EvilBG.MaxTorque = Vector3.new(1e5,1e5,1e5)
+            _G.EvilBG.P = 1000
+            _G.EvilBG.D = 50
+        end
+    else
+        if _G.EvilBV then _G.EvilBV:Destroy() _G.EvilBV=nil end
+        if _G.EvilBG then _G.EvilBG:Destroy() _G.EvilBG=nil end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not cfg.fly or not _G.EvilBV then return end
+    local mv = Vector3.zero
+    if UIS:IsKeyDown(Enum.KeyCode.W) then mv = mv + Camera.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then mv = mv - Camera.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then mv = mv - Camera.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then mv = mv + Camera.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.Space) then mv = mv + Vector3.new(0,1,0) end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then mv = mv - Vector3.new(0,1,0) end
+    if mv.Magnitude > 0 then mv = mv.Unit * cfg.spd end
+    _G.EvilBV.Velocity = mv
+    _G.EvilBG.CFrame = Camera.CFrame
+end)
+
+local function applySpeed()
+    local c = LP.Character
+    if not c then return end
+    local hm = c:FindFirstChildOfClass("Humanoid")
+    if not hm then return end
+    if not hm:GetAttribute("EvilBaseSpeed") then
+        hm:SetAttribute("EvilBaseSpeed", hm.WalkSpeed)
+    end
+    local base = hm:GetAttribute("EvilBaseSpeed") or 16
+    if cfg.speed then
+        hm.WalkSpeed = base + cfg.speedVal
+    else
+        hm.WalkSpeed = base
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.speed or cfg.speedVal > 0 then applySpeed() end
+end)
+
+LP.CharacterAdded:Connect(function()
+    if cfg.fly then setFly(true) end
+    if cfg.god then applyGod() end
+end)
