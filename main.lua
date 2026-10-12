@@ -408,9 +408,12 @@ local function mkESP(p)
     d.hp   = Drawing.new("Line"); d.hp.Thickness=2; d.hp.Color=Color3.fromRGB(0,255,100); d.hp.Visible=false
     d.dist = Drawing.new("Text"); d.dist.Size=12; d.dist.Center=true; d.dist.Outline=true; d.dist.Visible=false
     d.skel = {}
-    for _, bn in ipairs({"Head","UpperTorso","LowerTorso","LeftUpperArm","LeftLowerArm","LeftHand","RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}) do
-        local l = Drawing.new("Line"); l.Thickness=1; l.Color=Color3.fromRGB(230,230,235); l.Visible=false
-        d.skel[bn] = l
+    for i = 1, 20 do
+        local l = Drawing.new("Line")
+        l.Thickness = 1
+        l.Color = Color3.fromRGB(230,230,235)
+        l.Visible = false
+        d.skel[i] = l
     end
     Cache[p] = d
 end
@@ -436,6 +439,37 @@ end
 local function hide(e)
     e.box.Visible=false e.name.Visible=false e.hp.Visible=false e.dist.Visible=false
     for _, l in pairs(e.skel) do l.Visible=false end
+end
+
+-- skeleton compatível com R6 e R15
+local SKEL_R15 = {
+    {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+    {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+    {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+    {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+    {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+}
+local SKEL_R6 = {
+    {"Head","Torso"},
+    {"Torso","Left Arm"},{"Left Arm","Left Leg"},
+    {"Torso","Right Arm"},{"Right Arm","Right Leg"},
+    {"Torso","Left Leg"},{"Torso","Right Leg"},
+}
+
+local function drawSkel(c, e)
+    local isR15 = c:FindFirstChild("UpperTorso") ~= nil
+    local bones = isR15 and SKEL_R15 or SKEL_R6
+    for i, l in pairs(e.skel) do l.Visible = false end
+    for i, pr in ipairs(bones) do
+        local a = c:FindFirstChild(pr[1])
+        local b = c:FindFirstChild(pr[2])
+        local l = e.skel[i]
+        if a and b and l then
+            l.From = w2v(a.Position)
+            l.To   = w2v(b.Position)
+            l.Visible = true
+        end
+    end
 end
 
 RunService.RenderStepped:Connect(function()
@@ -487,23 +521,7 @@ RunService.RenderStepped:Connect(function()
                             end
                         else e.dist.Visible = false end
                         if cfg.skel then
-                            local pairs_ = {
-                                {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-                                {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-                                {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-                                {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-                                {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-                            }
-                            for _, pr in ipairs(pairs_) do
-                                local a = c:FindFirstChild(pr[1])
-                                local b = c:FindFirstChild(pr[2])
-                                local l = e.skel[pr[1]]
-                                if a and b and l then
-                                    l.From = w2v(a.Position)
-                                    l.To   = w2v(b.Position)
-                                    l.Visible = true
-                                end
-                            end
+                            drawSkel(c, e)
                         else
                             for _, l in pairs(e.skel) do l.Visible=false end
                         end
@@ -612,31 +630,41 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- SILENT AIM: hook em Mouse.Hit, Mouse.Target e nas funções de ray da Camera
 do
-    local ok = false
-    if hookmetamethod and getrawmetatable and checkcaller then
+    if hookmetamethod and getrawmetatable and checkcaller and newcclosure then
         pcall(function()
             local mt = getrawmetatable(game)
+            local oldNamecall = mt.__namecall
             setreadonly(mt, false)
-            local old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-                local m = getnamecallmethod()
-                if cfg.silent and not checkcaller() and self == LP:GetMouse() then
-                    if m == "Hit" or m == "get_Hit" then
-                        local t = target()
-                        if t then return CFrame.new(t.Position) end
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if cfg.silent and not checkcaller() then
+                    if self == LP:GetMouse() then
+                        if method == "get_Hit" or method == "Hit" then
+                            local t = target()
+                            if t then return CFrame.new(t.Position) end
+                        elseif method == "get_Target" or method == "Target" then
+                            local t = target()
+                            if t then return t end
+                        end
+                    elseif self == Camera then
+                        if method == "ViewportPointToRay" or method == "ScreenPointToRay" then
+                            local t = target()
+                            if t then
+                                local args = {...}
+                                local vp = Vector2.new(
+                                    Camera.ViewportSize.X/2,
+                                    Camera.ViewportSize.Y/2
+                                )
+                                return oldNamecall(self, vp, unpack(args, 2))
+                            end
+                        end
                     end
                 end
-                return old(self, ...)
-            end))
+                return oldNamecall(self, ...)
+            end)
             setreadonly(mt, true)
-            ok = true
-        end)
-    end
-    if not ok then
-        RunService.RenderStepped:Connect(function()
-            if not cfg.silent then return end
-            local t = target()
-            if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position) end
         end)
     end
 end
@@ -656,97 +684,4 @@ function applyRapid(state)
     if not state then return end
     rapidConn = RunService.Heartbeat:Connect(function()
         local c = LP.Character
-        if not c then return end
-        for _, tool in ipairs(c:GetChildren()) do
-            if tool:IsA("Tool") then
-                pcall(function()
-                    if tool:FindFirstChild("FireRate") then tool.FireRate.Value = 0.01 end
-                    if tool:FindFirstChild("FireRate2") then tool.FireRate2.Value = 0.01 end
-                    if tool:FindFirstChild("Settings") and tool.Settings:FindFirstChild("FireRate") then
-                        tool.Settings.FireRate.Value = 0.01
-                    end
-                end)
-            end
-        end
-    end)
-end
-
-local function applyGod()
-    local c = LP.Character
-    if not c then return end
-    local hm = c:FindFirstChildOfClass("Humanoid")
-    if hm then
-        hm.MaxHealth = math.huge
-        hm.Health = math.huge
-        if not hm:GetAttribute("EvilGod") then
-            hm:SetAttribute("EvilGod", true)
-            hm.HealthChanged:Connect(function(v)
-                if cfg.god and v < math.huge then hm.Health = math.huge end
-            end)
-        end
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    if cfg.god then applyGod() end
-end)
-
-function setFly(s)
-    local c = LP.Character
-    if not c then return end
-    local h = c:FindFirstChild("HumanoidRootPart")
-    if not h then return end
-    if s then
-        if not _G.EvilBV then
-            _G.EvilBV = Instance.new("BodyVelocity", h)
-            _G.EvilBV.MaxForce = Vector3.new(1e5,1e5,1e5)
-            _G.EvilBV.Velocity = Vector3.zero
-            _G.EvilBG = Instance.new("BodyGyro", h)
-            _G.EvilBG.MaxTorque = Vector3.new(1e5,1e5,1e5)
-            _G.EvilBG.P = 1000
-            _G.EvilBG.D = 50
-        end
-    else
-        if _G.EvilBV then _G.EvilBV:Destroy() _G.EvilBV=nil end
-        if _G.EvilBG then _G.EvilBG:Destroy() _G.EvilBG=nil end
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    if not cfg.fly or not _G.EvilBV then return end
-    local mv = Vector3.zero
-    if UIS:IsKeyDown(Enum.KeyCode.W) then mv = mv + Camera.CFrame.LookVector end
-    if UIS:IsKeyDown(Enum.KeyCode.S) then mv = mv - Camera.CFrame.LookVector end
-    if UIS:IsKeyDown(Enum.KeyCode.A) then mv = mv - Camera.CFrame.RightVector end
-    if UIS:IsKeyDown(Enum.KeyCode.D) then mv = mv + Camera.CFrame.RightVector end
-    if UIS:IsKeyDown(Enum.KeyCode.Space) then mv = mv + Vector3.new(0,1,0) end
-    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then mv = mv - Vector3.new(0,1,0) end
-    if mv.Magnitude > 0 then mv = mv.Unit * cfg.spd end
-    _G.EvilBV.Velocity = mv
-    _G.EvilBG.CFrame = Camera.CFrame
-end)
-
-local function applySpeed()
-    local c = LP.Character
-    if not c then return end
-    local hm = c:FindFirstChildOfClass("Humanoid")
-    if not hm then return end
-    if not hm:GetAttribute("EvilBaseSpeed") then
-        hm:SetAttribute("EvilBaseSpeed", hm.WalkSpeed)
-    end
-    local base = hm:GetAttribute("EvilBaseSpeed") or 16
-    if cfg.speed then
-        hm.WalkSpeed = base + cfg.speedVal
-    else
-        hm.WalkSpeed = base
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    if cfg.speed or cfg.speedVal > 0 then applySpeed() end
-end)
-
-LP.CharacterAdded:Connect(function()
-    if cfg.fly then setFly(true) end
-    if cfg.god then applyGod() end
-end)
+        if
