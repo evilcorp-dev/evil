@@ -514,9 +514,18 @@ exitBtn.TextSize = 13
 exitBtn.AutoButtonColor = false
 Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
 exitBtn.MouseButton1Click:Connect(function()
-    Float.Visible = false
-    Main.Visible = false
-    ClearFloat.Visible = false
+    pcall(function() Float.Visible = false end)
+    pcall(function() Main.Visible = false end)
+    pcall(function() ClearFloat.Visible = false end)
+    pcall(function() ClearFloat:Destroy() end)
+    pcall(function()
+        for _, v in ipairs(gui:GetDescendants()) do
+            if v:IsA("TextButton") and v.Text == "CLR" then
+                v.Visible = false
+                v:Destroy()
+            end
+        end
+    end)
 end)
 
 local clearBtn = Instance.new("TextButton", ConfigP)
