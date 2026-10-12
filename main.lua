@@ -3,17 +3,35 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local TeleportService = game:GetService("TeleportService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 local cfg = {
-    esp = false, box = true, skel = true, name = true, hp = true, dist = true, line = false,
-    aim = false, aimKey = Enum.KeyCode.E, aimKeyIsMouse = false, aimMouseBtn = 1,
-    silent = false, trigger = false, rapidFire = false,
-    fovCircle = false, god = false,
-    fly = false, spd = 60,
-    fov = 150, smooth = 30,
+    esp = false,
+    box = true,
+    skel = true,
+    name = true,
+    hp = true,
+    dist = true,
+    line = false,
+
+    aim = false,
+    aimKey = Enum.KeyCode.E,
+    aimKeyIsMouse = false,
+    aimMouseBtn = 1,
+    silent = false,
+    trigger = false,
+    rapidFire = false,
+
+    fovCircle = false,
+    fov = 150,
+    smooth = 30,
+
+    god = false,
+    fly = false,
+    spd = 60,
 }
 
 if CoreGui:FindFirstChild("EvilUI") then CoreGui.EvilUI:Destroy() end
@@ -25,7 +43,7 @@ pcall(function() ScreenGui.Parent = CoreGui end)
 if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 -- ============================================================
---  Flutuante
+--  FLUTUANTE
 -- ============================================================
 local Float = Instance.new("TextButton")
 Float.Size = UDim2.new(0, 64, 0, 64)
@@ -50,7 +68,7 @@ FloatIcon.Font = Enum.Font.GothamBold
 FloatIcon.TextSize = 26
 
 -- ============================================================
---  Menu
+--  MENU
 -- ============================================================
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 780, 0, 480)
@@ -187,7 +205,9 @@ local function makeCat(name)
     return b
 end
 
--- Componentes
+-- ============================================================
+--  COMPONENTES
+-- ============================================================
 local function toggleBtn(parent, label, default, cb)
     local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(1, -16, 0, 32)
@@ -195,17 +215,26 @@ local function toggleBtn(parent, label, default, cb)
     b.Text = ""
     b.AutoButtonColor = false
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
     local l = Instance.new("TextLabel", b)
-    l.Size = UDim2.new(1, -60, 1, 0); l.Position = UDim2.new(0, 12, 0, 0)
-    l.BackgroundTransparency = 1; l.Text = label
-    l.TextColor3 = Color3.fromRGB(220, 220, 225); l.Font = Enum.Font.Gotham
-    l.TextSize = 13; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Size = UDim2.new(1, -60, 1, 0)
+    l.Position = UDim2.new(0, 12, 0, 0)
+    l.BackgroundTransparency = 1
+    l.Text = label
+    l.TextColor3 = Color3.fromRGB(220, 220, 225)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+
     local s = Instance.new("TextLabel", b)
-    s.Size = UDim2.new(0, 44, 1, 0); s.Position = UDim2.new(1, -50, 0, 0)
+    s.Size = UDim2.new(0, 44, 1, 0)
+    s.Position = UDim2.new(1, -50, 0, 0)
     s.BackgroundTransparency = 1
     s.Text = default and "ON" or "OFF"
     s.TextColor3 = default and Color3.fromRGB(240, 240, 245) or Color3.fromRGB(120, 120, 130)
-    s.Font = Enum.Font.GothamBold; s.TextSize = 12
+    s.Font = Enum.Font.GothamBold
+    s.TextSize = 12
+
     local st = default
     b.MouseButton1Click:Connect(function()
         st = not st
@@ -221,19 +250,28 @@ local function slider(parent, label, mn, mx, d, cb)
     h.Size = UDim2.new(1, -16, 0, 46)
     h.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
     Instance.new("UICorner", h).CornerRadius = UDim.new(0, 6)
+
     local lb = Instance.new("TextLabel", h)
-    lb.Size = UDim2.new(1, -20, 0, 18); lb.Position = UDim2.new(0, 12, 0, 2)
-    lb.BackgroundTransparency = 1; lb.Text = label .. ": " .. d
-    lb.TextColor3 = Color3.fromRGB(220, 220, 225); lb.Font = Enum.Font.Gotham
-    lb.TextSize = 12; lb.TextXAlignment = Enum.TextXAlignment.Left
+    lb.Size = UDim2.new(1, -20, 0, 18)
+    lb.Position = UDim2.new(0, 12, 0, 2)
+    lb.BackgroundTransparency = 1
+    lb.Text = label .. ": " .. d
+    lb.TextColor3 = Color3.fromRGB(220, 220, 225)
+    lb.Font = Enum.Font.Gotham
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
     local bar = Instance.new("Frame", h)
-    bar.Size = UDim2.new(1, -24, 0, 6); bar.Position = UDim2.new(0, 12, 0, 28)
+    bar.Size = UDim2.new(1, -24, 0, 6)
+    bar.Position = UDim2.new(0, 12, 0, 28)
     bar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+
     local fill = Instance.new("Frame", bar)
     fill.Size = UDim2.new((d - mn) / (mx - mn), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(180, 180, 185)
     Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
     local dr = false
     local function upd(i)
         local p = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
@@ -243,7 +281,9 @@ local function slider(parent, label, mn, mx, d, cb)
         cb(v)
     end
     bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = true; upd(i) end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dr = true; upd(i)
+        end
     end)
     bar.InputChanged:Connect(function(i)
         if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
@@ -253,7 +293,6 @@ local function slider(parent, label, mn, mx, d, cb)
     end)
 end
 
--- Keybind que aceita teclado E mouse
 local function keybindBtn(parent, label, getKeyFn, cb)
     local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(1, -16, 0, 32)
@@ -261,22 +300,33 @@ local function keybindBtn(parent, label, getKeyFn, cb)
     b.Text = ""
     b.AutoButtonColor = false
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
     local l = Instance.new("TextLabel", b)
-    l.Size = UDim2.new(1, -100, 1, 0); l.Position = UDim2.new(0, 12, 0, 0)
-    l.BackgroundTransparency = 1; l.Text = label
-    l.TextColor3 = Color3.fromRGB(220, 220, 225); l.Font = Enum.Font.Gotham
-    l.TextSize = 13; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Size = UDim2.new(1, -100, 1, 0)
+    l.Position = UDim2.new(0, 12, 0, 0)
+    l.BackgroundTransparency = 1
+    l.Text = label
+    l.TextColor3 = Color3.fromRGB(220, 220, 225)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+
     local k = Instance.new("TextLabel", b)
-    k.Size = UDim2.new(0, 88, 1, 0); k.Position = UDim2.new(1, -94, 0, 0)
+    k.Size = UDim2.new(0, 88, 1, 0)
+    k.Position = UDim2.new(1, -94, 0, 0)
     k.BackgroundTransparency = 1
     k.Text = getKeyFn()
-    k.TextColor3 = Color3.fromRGB(240, 240, 245); k.Font = Enum.Font.GothamBold; k.TextSize = 12
+    k.TextColor3 = Color3.fromRGB(240, 240, 245)
+    k.Font = Enum.Font.GothamBold
+    k.TextSize = 12
+
     local waiting = false
     b.MouseButton1Click:Connect(function()
         waiting = true
         k.Text = "[...]"
         k.TextColor3 = Color3.fromRGB(255, 200, 100)
     end)
+
     UserInputService.InputBegan:Connect(function(input, gpe)
         if not waiting or gpe then return end
         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -298,7 +348,9 @@ local function keybindBtn(parent, label, getKeyFn, cb)
     end)
 end
 
--- Páginas
+-- ============================================================
+--  PÁGINAS
+-- ============================================================
 local AimPage = makePage("AIM")
 local VisPage = makePage("VISUALS")
 local MiscPage = makePage("MISC")
@@ -310,7 +362,8 @@ local function makeTitle(page, text)
     t.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     t.Text = text
     t.TextColor3 = Color3.fromRGB(255, 255, 255)
-    t.Font = Enum.Font.GothamBold; t.TextSize = 16
+    t.Font = Enum.Font.GothamBold
+    t.TextSize = 16
 end
 
 makeTitle(AimPage, "AIM")
@@ -337,21 +390,14 @@ local VisScroll = makeScroll(VisPage)
 local MiscScroll = makeScroll(MiscPage)
 local PlayerScroll = makeScroll(PlayerPage)
 
+-- AIM
 toggleBtn(AimScroll, "Aimbot", cfg.aim, function(v) cfg.aim = v end)
 keybindBtn(AimScroll, "Aimbot Key", function()
-    if cfg.aimKeyIsMouse then
-        return cfg.aimMouseBtn == 1 and "MB1" or "MB2"
-    else
-        return cfg.aimKey.Name
-    end
+    if cfg.aimKeyIsMouse then return cfg.aimMouseBtn == 1 and "MB1" or "MB2" end
+    return cfg.aimKey.Name
 end, function(kind, val)
-    if kind == "mouse" then
-        cfg.aimKeyIsMouse = true
-        cfg.aimMouseBtn = val
-    else
-        cfg.aimKeyIsMouse = false
-        cfg.aimKey = val
-    end
+    if kind == "mouse" then cfg.aimKeyIsMouse = true; cfg.aimMouseBtn = val
+    else cfg.aimKeyIsMouse = false; cfg.aimKey = val end
 end)
 toggleBtn(AimScroll, "Silent Aim", cfg.silent, function(v) cfg.silent = v end)
 toggleBtn(AimScroll, "Triggerbot", cfg.trigger, function(v) cfg.trigger = v end)
@@ -359,6 +405,7 @@ toggleBtn(AimScroll, "FOV Circle", cfg.fovCircle, function(v) cfg.fovCircle = v 
 slider(AimScroll, "FOV", 30, 600, cfg.fov, function(v) cfg.fov = v end)
 slider(AimScroll, "Smooth", 1, 100, cfg.smooth, function(v) cfg.smooth = v end)
 
+-- VISUALS
 toggleBtn(VisScroll, "ESP", cfg.esp, function(v) cfg.esp = v end)
 toggleBtn(VisScroll, "Box", cfg.box, function(v) cfg.box = v end)
 toggleBtn(VisScroll, "Skeleton", cfg.skel, function(v) cfg.skel = v end)
@@ -367,13 +414,18 @@ toggleBtn(VisScroll, "Health", cfg.hp, function(v) cfg.hp = v end)
 toggleBtn(VisScroll, "Distance", cfg.dist, function(v) cfg.dist = v end)
 toggleBtn(VisScroll, "Line", cfg.line, function(v) cfg.line = v end)
 
+-- PLAYER
 toggleBtn(PlayerScroll, "Godmode", cfg.god, function(v) cfg.god = v end)
 toggleBtn(PlayerScroll, "Fly", cfg.fly, function(v) cfg.fly = v; setFly(v) end)
 slider(PlayerScroll, "Fly Speed", 10, 300, cfg.spd, function(v) cfg.spd = v end)
 
-toggleBtn(MiscScroll, "Rapid Fire", cfg.rapidFire, function(v) cfg.rapidFire = v end)
+-- MISC
+toggleBtn(MiscScroll, "Rapid Fire", cfg.rapidFire, function(v)
+    cfg.rapidFire = v
+    if applyRapidFire then applyRapidFire() end
+end)
 toggleBtn(MiscScroll, "Rejoin", false, function(v)
-    if v then game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end
+    if v then TeleportService:Teleport(game.PlaceId, LocalPlayer) end
 end)
 
 for k, v in pairs(PageMap) do v.Visible = (k == "AIM") end
@@ -397,11 +449,14 @@ local function createESP(player)
     d.HP = Drawing.new("Line"); d.HP.Thickness = 2; d.HP.Color = Color3.fromRGB(0, 255, 100); d.HP.Visible = false
     d.Dist = Drawing.new("Text"); d.Dist.Size = 12; d.Dist.Center = true; d.Dist.Outline = true; d.Dist.Visible = false
     d.Line = Drawing.new("Line"); d.Line.Thickness = 1; d.Line.Visible = false
+
     local bones = {"Head","UpperTorso","LowerTorso","LeftUpperArm","LeftLowerArm","LeftHand","RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}
     d.Skel = {}
     for _, bn in ipairs(bones) do
         local ln = Drawing.new("Line")
-        ln.Thickness = 1; ln.Color = Color3.fromRGB(230, 230, 235); ln.Visible = false
+        ln.Thickness = 1
+        ln.Color = Color3.fromRGB(230, 230, 235)
+        ln.Visible = false
         d.Skel[bn] = ln
     end
     ESPCache[player] = d
@@ -441,8 +496,11 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local function hideESP(e)
-    e.Box.Visible = false; e.Name.Visible = false; e.HP.Visible = false
-    e.Dist.Visible = false; e.Line.Visible = false
+    e.Box.Visible = false
+    e.Name.Visible = false
+    e.HP.Visible = false
+    e.Dist.Visible = false
+    e.Line.Visible = false
     for _, l in pairs(e.Skel) do l.Visible = false end
 end
 
@@ -458,7 +516,7 @@ local function bbox(char)
     local c1 = cf.Position + size / 2
     local x0, y0 = wp(c0)
     local x1, y1 = wp(c1)
-    return math.min(x0.X, x1.X), math.min(x0.Y, y1.Y), math.max(x0.X, x1.X), math.max(x0.Y, y1.Y)
+    return math.min(x0.X, x1.X), math.min(x0.Y, x1.Y), math.max(x0.X, x1.X), math.max(x0.Y, x1.Y)
 end
 
 RunService.RenderStepped:Connect(function()
@@ -467,22 +525,28 @@ RunService.RenderStepped:Connect(function()
         local hr = c and c:FindFirstChild("HumanoidRootPart")
         local hd = c and c:FindFirstChild("Head")
         local hm = c and c:FindFirstChildOfClass("Humanoid")
-        if not cfg.esp or not c or not hr or not hd or not hm or hm.Health <= 0 then hideESP(e); continue end
+        if not cfg.esp or not c or not hr or not hd or not hm or hm.Health <= 0 then
+            hideESP(e); continue
+        end
         local minx, miny, maxx, maxy = bbox(c)
         if not minx then hideESP(e); continue end
         local x, y, w, h = minx, miny, maxx - minx, maxy - miny
+
         e.Box.Size = Vector2.new(w, h)
         e.Box.Position = Vector2.new(x, y)
         e.Box.Color = Color3.fromRGB(230, 230, 235)
         e.Box.Visible = cfg.box
+
         e.Name.Text = p.Name
         e.Name.Position = Vector2.new(x + w / 2, y - 18)
         e.Name.Color = Color3.fromRGB(255, 255, 255)
         e.Name.Visible = cfg.name
+
         local hpr = hm.Health / math.max(hm.MaxHealth, 1)
         e.HP.From = Vector2.new(x - 6, y + h)
         e.HP.To = Vector2.new(x - 6, y + h - h * hpr)
         e.HP.Visible = cfg.hp
+
         if cfg.dist then
             local mr = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if mr then
@@ -492,21 +556,23 @@ RunService.RenderStepped:Connect(function()
                 e.Dist.Visible = true
             end
         else e.Dist.Visible = false end
+
         if cfg.line then
             e.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
             e.Line.To = Vector2.new(x + w / 2, y + h)
             e.Line.Color = Color3.fromRGB(230, 230, 235)
             e.Line.Visible = true
         else e.Line.Visible = false end
+
         if cfg.skel then
-            local bonesList = {
+            local boneList = {
                 {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
                 {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
                 {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
                 {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
                 {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
             }
-            for _, pr in ipairs(bonesList) do
+            for _, pr in ipairs(boneList) do
                 local a = c:FindFirstChild(pr[1])
                 local b = c:FindFirstChild(pr[2])
                 local ln = e.Skel[pr[1]]
@@ -516,7 +582,9 @@ RunService.RenderStepped:Connect(function()
                     ln.Visible = true
                 end
             end
-        else for _, ln in pairs(e.Skel) do ln.Visible = false end end
+        else
+            for _, ln in pairs(e.Skel) do ln.Visible = false end
+        end
     end
 end)
 
@@ -546,7 +614,6 @@ local function getTarget()
     return closest
 end
 
--- Checa se a key do aimbot ta pressionada (teclado OU mouse)
 local function aimKeyDown()
     if cfg.aimKeyIsMouse then
         if cfg.aimMouseBtn == 1 then
@@ -560,23 +627,18 @@ local function aimKeyDown()
     return false
 end
 
--- ============================================================
---  Aimbot corrigido
--- ============================================================
+-- Aimbot
 RunService.RenderStepped:Connect(function()
     if not cfg.aim then return end
     if not aimKeyDown() then return end
-    local target = getTarget()
-    if target then
+    local t = getTarget()
+    if t then
         local smooth = 1 - (cfg.smooth / 100)
-        local goal = CFrame.new(Camera.CFrame.Position, target.Position)
-        Camera.CFrame = Camera.CFrame:Lerp(goal, smooth)
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Position), smooth)
     end
 end)
 
--- ============================================================
---  Silent Aim (hook + fallback)
--- ============================================================
+-- Silent Aim (hook + fallback)
 local silentOK = false
 if hookmetamethod and getrawmetatable and checkcaller then
     pcall(function()
@@ -584,8 +646,8 @@ if hookmetamethod and getrawmetatable and checkcaller then
         setreadonly(mt, false)
         local oldNC = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
             local method = getnamecallmethod()
-            if cfg.silent and not checkcaller() then
-                if self == LocalPlayer:GetMouse() and (method == "Hit" or method == "get_Hit") then
+            if cfg.silent and not checkcaller() and self == LocalPlayer:GetMouse() then
+                if method == "Hit" or method == "get_Hit" then
                     local t = getTarget()
                     if t then return CFrame.new(t.Position) end
                 end
@@ -597,20 +659,15 @@ if hookmetamethod and getrawmetatable and checkcaller then
     end)
 end
 
--- Fallback: se hook não funcionou, faz aim instantâneo no silent
 if not silentOK then
     RunService.RenderStepped:Connect(function()
         if not cfg.silent then return end
         local t = getTarget()
-        if t then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position)
-        end
+        if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position) end
     end)
 end
 
--- ============================================================
---  Triggerbot
--- ============================================================
+-- Triggerbot
 RunService.RenderStepped:Connect(function()
     if not cfg.trigger then return end
     local t = getTarget()
@@ -620,11 +677,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ============================================================
---  Rapid Fire
--- ============================================================
+-- Rapid Fire
 local rapidConn
-local function applyRapidFire()
+function applyRapidFire()
     if rapidConn then rapidConn:Disconnect() rapidConn = nil end
     if not cfg.rapidFire then return end
     rapidConn = RunService.Heartbeat:Connect(function()
@@ -644,9 +699,7 @@ local function applyRapidFire()
     end)
 end
 
--- ============================================================
---  Godmode
--- ============================================================
+-- Godmode
 local function applyGod()
     local c = LocalPlayer.Character
     if not c then return end
@@ -656,4 +709,31 @@ local function applyGod()
         hm.Health = math.huge
         if not hm:GetAttribute("EvilGodBound") then
             hm:SetAttribute("EvilGodBound", true)
-            hm.HealthChanged:
+            hm.HealthChanged:Connect(function(v)
+                if cfg.god and v < math.huge then hm.Health = math.huge end
+            end)
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.god then applyGod() end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(c)
+    if cfg.god then task.wait(0.2) applyGod() end
+    if cfg.fly then task.wait(1) setFly(true) end
+end)
+
+-- Fly
+function setFly(state)
+    local c = LocalPlayer.Character
+    if not c then return end
+    local h = c:FindFirstChild("HumanoidRootPart")
+    if not h then return end
+    if state then
+        if not _G.EvilFlyBV then
+            _G.EvilFlyBV = Instance.new("BodyVelocity", h)
+            _G.EvilFlyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            _G.EvilFlyBV.Velocity = Vector3.zero
+            _G.EvilFlyBG = Instance
