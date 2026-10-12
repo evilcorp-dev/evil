@@ -10,9 +10,10 @@ local EVIL_IMG = "rbxassetid://0"
 
 local cfg = {
     esp=false, box=true, skel=true, name=true, hp=true, dist=true,
-    aim=false, silent=false, trigger=false, aimVisible=false,
+    aim=false, aimPart="Head", silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
     god=false, fly=false, spd=60,
+    speed=false, speedVal=0,
     tpEnemy=false,
 }
 
@@ -257,6 +258,59 @@ local function sld(p, label, mn, mx, def, order, cb)
     end)
 end
 
+local function row(p, label, opts, def, order, cb)
+    local h = Instance.new("Frame", p)
+    h.Size = UDim2.new(1,-16,0,52)
+    h.BackgroundColor3 = C.card
+    h.LayoutOrder = order or 0
+    Instance.new("UICorner", h).CornerRadius = UDim.new(0,8)
+
+    local lb = Instance.new("TextLabel", h)
+    lb.Size = UDim2.new(1,-20,0,18)
+    lb.Position = UDim2.new(0,12,0,3)
+    lb.BackgroundTransparency = 1
+    lb.Text = label
+    lb.TextColor3 = C.txt
+    lb.Font = Enum.Font.Gotham
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
+    local holder = Instance.new("Frame", h)
+    holder.Size = UDim2.new(1,-24,0,24)
+    holder.Position = UDim2.new(0,12,0,24)
+    holder.BackgroundTransparency = 1
+    local hl = Instance.new("UIListLayout", holder)
+    hl.FillDirection = Enum.FillDirection.Horizontal
+    hl.Padding = UDim.new(0,6)
+    hl.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local btns = {}
+    local function setActive(name)
+        for n, b in pairs(btns) do
+            b.BackgroundColor3 = (n == name) and C.on or Color3.fromRGB(34,34,38)
+            b.TextColor3 = (n == name) and C.txt or C.dim
+        end
+    end
+
+    for i, name in ipairs(opts) do
+        local b = Instance.new("TextButton", holder)
+        b.Size = UDim2.new(0,70,1,0)
+        b.BackgroundColor3 = (name == def) and C.on or Color3.fromRGB(34,34,38)
+        b.Text = name
+        b.TextColor3 = (name == def) and C.txt or C.dim
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 12
+        b.AutoButtonColor = false
+        b.LayoutOrder = i
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+        b.MouseButton1Click:Connect(function()
+            setActive(name)
+            cb(name)
+        end)
+        btns[name] = b
+    end
+end
+
 local function sc(p)
     local s = Instance.new("ScrollingFrame", p)
     s.Size = UDim2.new(1,-16,1,-16)
@@ -288,12 +342,13 @@ local applyRapid, setFly
 local isVisible, target
 
 tog(AS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
-sld(AS, "Regular FOV", 30, 600, cfg.fov, 2, function(v) cfg.fov = v end)
-sld(AS, "Smooth", 1, 100, cfg.smooth, 3, function(v) cfg.smooth = v end)
-tog(AS, "Aim Visible", cfg.aimVisible, 4, function(v) cfg.aimVisible=v end)
-tog(AS, "Silent Aim", cfg.silent, 5, function(v) cfg.silent=v end)
-tog(AS, "Triggerbot", cfg.trigger, 6, function(v) cfg.trigger=v end)
-tog(AS, "FOV Circle", cfg.fovCircle, 7, function(v) cfg.fovCircle=v end)
+row(AS, "Aim Part", {"Head","Neck","Body"}, cfg.aimPart, 2, function(v) cfg.aimPart = v end)
+sld(AS, "Regular FOV", 30, 600, cfg.fov, 3, function(v) cfg.fov = v end)
+sld(AS, "Smooth", 1, 100, cfg.smooth, 4, function(v) cfg.smooth = v end)
+tog(AS, "Aim Visible", cfg.aimVisible, 5, function(v) cfg.aimVisible=v end)
+tog(AS, "Silent Aim", cfg.silent, 6, function(v) cfg.silent=v end)
+tog(AS, "Triggerbot", cfg.trigger, 7, function(v) cfg.trigger=v end)
+tog(AS, "FOV Circle", cfg.fovCircle, 8, function(v) cfg.fovCircle=v end)
 
 tog(VS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
 tog(VS, "Box", cfg.box, 2, function(v) cfg.box=v end)
@@ -304,6 +359,9 @@ tog(VS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
 
 tog(PS, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
 tog(PS, "Fly [WASD+Space]", cfg.fly, 2, function(v) cfg.fly=v; if setFly then setFly(v) end end)
+sld(PS, "Fly Speed", 10, 300, cfg.spd, 3, function(v) cfg.spd = v end)
+tog(PS, "Speed", cfg.speed, 4, function(v) cfg.speed=v end)
+sld(PS, "Speed Value", 0, 30, cfg.speedVal, 5, function(v) cfg.speedVal = v end)
 
 tog(MS, "TP to Enemy", false, 1, function(v)
     if v then
@@ -502,22 +560,40 @@ local function sameTeam(p)
     return false
 end
 
+local function aimPoint(c)
+    if cfg.aimPart == "Head" then
+        return c:FindFirstChild("Head")
+    elseif cfg.aimPart == "Neck" then
+        return c:FindFirstChild("Neck")
+            or c:FindFirstChild("UpperTorso")
+            or c:FindFirstChild("Torso")
+            or c:FindFirstChild("Head")
+    else
+        return c:FindFirstChild("UpperTorso")
+            or c:FindFirstChild("Torso")
+            or c:FindFirstChild("LowerTorso")
+            or c:FindFirstChild("Head")
+    end
+end
+
 target = function()
     local best, bd = nil, cfg.fov
     local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LP and p.Parent and not sameTeam(p) then
             local c = p.Character
-            local hd = c and c:FindFirstChild("Head")
             local hm = c and c:FindFirstChildOfClass("Humanoid")
-            if hd and hd.Parent and hm and hm.Parent and hm.Health > 0 then
-                local sp, on = Camera:WorldToViewportPoint(hd.Position)
-                if on then
-                    local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-                    if d < bd then
-                        if isVisible(hd) then
-                            bd = d
-                            best = hd
+            if c and hm and hm.Parent and hm.Health > 0 then
+                local part = aimPoint(c)
+                if part and part.Parent then
+                    local sp, on = Camera:WorldToViewportPoint(part.Position)
+                    if on then
+                        local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
+                        if d < bd then
+                            if isVisible(part) then
+                                bd = d
+                                best = part
+                            end
                         end
                     end
                 end
@@ -650,7 +726,8 @@ RunService.RenderStepped:Connect(function()
     _G.EvilBG.CFrame = Camera.CFrame
 end)
 
-LP.CharacterAdded:Connect(function()
-    if cfg.fly then setFly(true) end
-    if cfg.god then applyGod() end
-end)
+local function applySpeed()
+    local c = LP.Character
+    if not c then return end
+    local hm = c:FindFirstChildOfClass("Humanoid")
+    if not hm then return end
