@@ -10,7 +10,7 @@ local EVIL_IMG = "rbxassetid://0"
 
 local cfg = {
     esp=false, box=true, skel=true, name=true, hp=true, dist=true,
-    aim=false, aimKey=Enum.KeyCode.E, silent=false, trigger=false,
+    aim=false, silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
     god=false, fly=false, spd=60,
 }
@@ -282,8 +282,10 @@ cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
 
 local applyRapid, setFly
 
-tog(AS, "Aimbot [E]", cfg.aim, function(v) cfg.aim=v end)
+tog(AS, "Aimbot (sempre ativo)", cfg.aim, function(v) cfg.aim=v end)
 sld(AS, "Regular FOV", 30, 600, cfg.fov, function(v) cfg.fov = v end)
+sld(AS, "Smooth", 1, 100, cfg.smooth, function(v) cfg.smooth = v end)
+tog(AS, "Aim Visible", cfg.aimVisible, function(v) cfg.aimVisible=v end)
 tog(AS, "Silent Aim", cfg.silent, function(v) cfg.silent=v end)
 tog(AS, "Triggerbot", cfg.trigger, function(v) cfg.trigger=v end)
 tog(AS, "FOV Circle", cfg.fovCircle, function(v) cfg.fovCircle=v end)
@@ -366,7 +368,6 @@ RunService.RenderStepped:Connect(function()
         Fov.Visible = cfg.fovCircle
     end
     for p, e in pairs(Cache) do
-        -- checagens anti-fantasma
         if not p or not p.Parent or p == LP then
             hide(e)
             task.spawn(function() clearCache(p) end)
@@ -386,7 +387,6 @@ RunService.RenderStepped:Connect(function()
                     local p1 = w2v(cf.Position + size/2)
                     local x,y = math.min(p0.X,p1.X), math.min(p0.Y,p1.Y)
                     local w,h = math.abs(p1.X-p0.X), math.abs(p1.Y-p0.Y)
-                    -- descarta caixas absurdas (fantasma ou personagem destruído)
                     if w > 0 and h > 0 and w < 2000 and h < 2000 then
                         e.box.Size = Vector2.new(w,h)
                         e.box.Position = Vector2.new(x,y)
@@ -441,6 +441,21 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Checagem de visibilidade: raycast da câmera até o alvo.
+-- Retorna true se o primeiro obstáculo for a própria cabeça do alvo.
+local function isVisible(targetPart)
+    if not cfg.aimVisible then return true end
+    local origin = Camera.CFrame.Position
+    local dir = (targetPart.Position - origin)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { LP.Character, Camera }
+    params.IgnoreWater = true
+    local result = Workspace:Raycast(origin, dir, params)
+    if not result then return true end
+    return result.Instance == targetPart or result.Instance:IsDescendantOf(targetPart.Parent)
+end
+
 local function target()
     local best, bd = nil, cfg.fov
     local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
@@ -449,11 +464,16 @@ local function target()
             local c = p.Character
             local hd = c and c:FindFirstChild("Head")
             local hm = c and c:FindFirstChildOfClass("Humanoid")
-            if hd and hd.Parent and hm and hm.Parent and hm.Health>0 then
+            if hd and hd.Parent and hm and hm.Parent and hm.Health > 0 then
                 local sp, on = Camera:WorldToViewportPoint(hd.Position)
                 if on then
                     local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-                    if d < bd then bd=d best=hd end
+                    if d < bd then
+                        if isVisible(hd) then
+                            bd = d
+                            best = hd
+                        end
+                    end
                 end
             end
         end
@@ -463,7 +483,6 @@ end
 
 RunService.RenderStepped:Connect(function()
     if not cfg.aim then return end
-    if not UIS:IsKeyDown(cfg.aimKey) then return end
     local t = target()
     if t then
         local sm = 1 - (cfg.smooth/100)
