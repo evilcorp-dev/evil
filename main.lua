@@ -55,30 +55,6 @@ local fs = Instance.new("UIStroke", Float)
 fs.Color = C.accent
 fs.Thickness = 1.5
 
-local ClearFloat = Instance.new("TextButton")
-ClearFloat.Size = UDim2.new(0,58,0,28)
-ClearFloat.Position = UDim2.new(0,30,0,190)
-ClearFloat.BackgroundColor3 = C.panel
-ClearFloat.Text = "CLR"
-ClearFloat.TextColor3 = C.txt
-ClearFloat.Font = Enum.Font.GothamBold
-ClearFloat.TextSize = 13
-ClearFloat.AutoButtonColor = false
-ClearFloat.Parent = gui
-Instance.new("UICorner", ClearFloat).CornerRadius = UDim.new(0,6)
-local cfs = Instance.new("UIStroke", ClearFloat)
-cfs.Color = C.accent
-cfs.Thickness = 1.5
-ClearFloat.MouseButton1Click:Connect(function()
-    pcall(function() if clearoutput then clearoutput() end end)
-    pcall(function() if rconsoleclear then rconsoleclear() end end)
-    pcall(function() if consoleclear then consoleclear() end end)
-    pcall(function() if clearconsole then clearconsole() end end)
-    pcall(function() if syn and syn.clear_console then syn.clear_console() end end)
-    ClearFloat.Text = "OK"
-    task.delay(1, function() ClearFloat.Text = "CLR" end)
-end)
-
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0,700,0,440)
 Main.Position = UDim2.new(0,100,0,80)
@@ -514,36 +490,8 @@ exitBtn.TextSize = 13
 exitBtn.AutoButtonColor = false
 Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
 exitBtn.MouseButton1Click:Connect(function()
-    pcall(function() Float.Visible = false end)
-    pcall(function() Main.Visible = false end)
-    pcall(function() ClearFloat.Visible = false end)
-    pcall(function() ClearFloat:Destroy() end)
-    pcall(function()
-        for _, v in ipairs(gui:GetDescendants()) do
-            if v:IsA("TextButton") and v.Text == "CLR" then
-                v.Visible = false
-                v:Destroy()
-            end
-        end
-    end)
-end)
-
-local clearBtn = Instance.new("TextButton", ConfigP)
-clearBtn.Size = UDim2.new(1,-36,0,40)
-clearBtn.Position = UDim2.new(0,18,0,112)
-clearBtn.BackgroundColor3 = Color3.fromRGB(50,50,60)
-clearBtn.Text = "LIMPAR LOGS"
-clearBtn.TextColor3 = C.txt
-clearBtn.Font = Enum.Font.GothamBold
-clearBtn.TextSize = 13
-clearBtn.AutoButtonColor = false
-Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0,6)
-clearBtn.MouseButton1Click:Connect(function()
-    pcall(function() if clearoutput then clearoutput() end end)
-    pcall(function() if rconsoleclear then rconsoleclear() end end)
-    pcall(function() if consoleclear then consoleclear() end end)
-    pcall(function() if clearconsole then clearconsole() end end)
-    pcall(function() if syn and syn.clear_console then syn.clear_console() end end)
+    Float.Visible = false
+    Main.Visible = false
 end)
 
 sel("Combat")
