@@ -17,6 +17,20 @@ local cfg = {
     tpEnemy=false,
 }
 
+local themeIndex = 1
+
+local THEMES = {
+    { name="Preto",  bg=Color3.fromRGB(12,12,14), panel=Color3.fromRGB(18,18,21), card=Color3.fromRGB(26,26,30), on=Color3.fromRGB(58,58,66), txt=Color3.fromRGB(228,228,234), dim=Color3.fromRGB(140,140,150) },
+    { name="Verde",  bg=Color3.fromRGB(10,18,12), panel=Color3.fromRGB(14,26,18), card=Color3.fromRGB(20,36,24), on=Color3.fromRGB(50,120,70), txt=Color3.fromRGB(220,240,225), dim=Color3.fromRGB(130,180,145) },
+    { name="Branco", bg=Color3.fromRGB(230,230,235), panel=Color3.fromRGB(240,240,245), card=Color3.fromRGB(250,250,252), on=Color3.fromRGB(180,180,190), txt=Color3.fromRGB(20,20,25), dim=Color3.fromRGB(90,90,100) },
+    { name="Roxo",   bg=Color3.fromRGB(16,10,24), panel=Color3.fromRGB(22,14,34), card=Color3.fromRGB(30,18,46), on=Color3.fromRGB(95,60,150), txt=Color3.fromRGB(230,220,240), dim=Color3.fromRGB(150,130,180) },
+    { name="Vermelho", bg=Color3.fromRGB(20,10,10), panel=Color3.fromRGB(30,14,14), card=Color3.fromRGB(42,18,18), on=Color3.fromRGB(140,45,45), txt=Color3.fromRGB(240,220,220), dim=Color3.fromRGB(180,130,130) },
+    { name="Azul",   bg=Color3.fromRGB(10,14,22), panel=Color3.fromRGB(14,20,34), card=Color3.fromRGB(18,28,46), on=Color3.fromRGB(45,90,150), txt=Color3.fromRGB(220,228,240), dim=Color3.fromRGB(130,150,190) },
+}
+
+local C = {}
+for k,v in pairs(THEMES[1]) do C[k] = v end
+
 pcall(function()
     if game:GetService("CoreGui"):FindFirstChild("EvilUI") then
         game:GetService("CoreGui").EvilUI:Destroy()
@@ -29,12 +43,6 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
 if not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
-
-local C = {
-    bg=Color3.fromRGB(12,12,14), panel=Color3.fromRGB(18,18,21),
-    card=Color3.fromRGB(26,26,30), on=Color3.fromRGB(58,58,66),
-    txt=Color3.fromRGB(228,228,234), dim=Color3.fromRGB(140,140,150),
-}
 
 local Float = Instance.new("TextButton")
 Float.Size = UDim2.new(0,64,0,64)
@@ -104,7 +112,7 @@ do
 end
 
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0,140,1,0)
+Sidebar.Size = UDim2.new(0,150,1,0)
 Sidebar.BackgroundColor3 = C.panel
 Sidebar.BorderSizePixel = 0
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,12)
@@ -143,8 +151,8 @@ cl.Padding = UDim.new(0,4)
 cl.SortOrder = Enum.SortOrder.LayoutOrder
 
 local Pages = Instance.new("Frame", Main)
-Pages.Size = UDim2.new(1,-140,1,0)
-Pages.Position = UDim2.new(0,140,0,0)
+Pages.Size = UDim2.new(1,-150,1,0)
+Pages.Position = UDim2.new(0,150,0,0)
 Pages.BackgroundTransparency = 1
 Pages.ClipsDescendants = true
 
@@ -326,44 +334,37 @@ local function sc(p)
     return s
 end
 
-local AP = page("AIM")
-local VP = page("VISUALS")
-local MP = page("MISC")
-local PP = page("PLAYER")
+local CombatP = page("Combat")
+local ExploitP = page("Exploits")
+local VisualP = page("Visuals")
+local ColorP = page("Colors")
+local ConfigP = page("Config")
 
-local AS = sc(AP)
-local VS = sc(VP)
-local MS = sc(MP)
-local PS = sc(PP)
+local CombatS = sc(CombatP)
+local ExploitS = sc(ExploitP)
+local VisualS = sc(VisualP)
+local ColorS = sc(ColorP)
 
-cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
+cat("Combat",1) cat("Exploits",2) cat("Visuals",3) cat("Colors",4) cat("Config",5)
 
 local applyRapid, setFly
 local isVisible, target
 
-tog(AS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
-row(AS, "Aim Part", {"Head","Neck","Body"}, cfg.aimPart, 2, function(v) cfg.aimPart = v end)
-sld(AS, "Regular FOV", 30, 600, cfg.fov, 3, function(v) cfg.fov = v end)
-sld(AS, "Smooth", 1, 100, cfg.smooth, 4, function(v) cfg.smooth = v end)
-tog(AS, "Aim Visible", cfg.aimVisible, 5, function(v) cfg.aimVisible=v end)
-tog(AS, "Silent Aim", cfg.silent, 6, function(v) cfg.silent=v end)
-tog(AS, "Triggerbot", cfg.trigger, 7, function(v) cfg.trigger=v end)
-tog(AS, "FOV Circle", cfg.fovCircle, 8, function(v) cfg.fovCircle=v end)
+tog(CombatS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
+row(CombatS, "Aim Part", {"Head","Neck","Body"}, cfg.aimPart, 2, function(v) cfg.aimPart = v end)
+sld(CombatS, "Regular FOV", 30, 600, cfg.fov, 3, function(v) cfg.fov = v end)
+sld(CombatS, "Smooth", 1, 100, cfg.smooth, 4, function(v) cfg.smooth = v end)
+tog(CombatS, "Aim Visible", cfg.aimVisible, 5, function(v) cfg.aimVisible=v end)
+tog(CombatS, "Silent Aim", cfg.silent, 6, function(v) cfg.silent=v end)
+tog(CombatS, "Triggerbot", cfg.trigger, 7, function(v) cfg.trigger=v end)
+tog(CombatS, "FOV Circle", cfg.fovCircle, 8, function(v) cfg.fovCircle=v end)
 
-tog(VS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
-tog(VS, "Box", cfg.box, 2, function(v) cfg.box=v end)
-tog(VS, "Skeleton", cfg.skel, 3, function(v) cfg.skel=v end)
-tog(VS, "Name", cfg.name, 4, function(v) cfg.name=v end)
-tog(VS, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
-tog(VS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
-
-tog(PS, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
-tog(PS, "Fly [WASD+Space]", cfg.fly, 2, function(v) cfg.fly=v; if setFly then setFly(v) end end)
-sld(PS, "Fly Speed", 10, 300, cfg.spd, 3, function(v) cfg.spd = v end)
-tog(PS, "Speed", cfg.speed, 4, function(v) cfg.speed=v end)
-sld(PS, "Speed Value", 0, 30, cfg.speedVal, 5, function(v) cfg.speedVal = v end)
-
-tog(MS, "TP to Enemy", false, 1, function(v)
+tog(ExploitS, "Fly [WASD+Space]", cfg.fly, 1, function(v) cfg.fly=v; if setFly then setFly(v) end end)
+sld(ExploitS, "Fly Speed", 10, 300, cfg.spd, 2, function(v) cfg.spd = v end)
+tog(ExploitS, "Speed", cfg.speed, 3, function(v) cfg.speed=v end)
+sld(ExploitS, "Speed Value", 0, 30, cfg.speedVal, 4, function(v) cfg.speedVal = v end)
+tog(ExploitS, "Godmode", cfg.god, 5, function(v) cfg.god=v end)
+tog(ExploitS, "TP to Enemy", false, 6, function(v)
     if v then
         local t = target and target()
         if t then
@@ -377,10 +378,70 @@ tog(MS, "TP to Enemy", false, 1, function(v)
     end
     cfg.tpEnemy = false
 end)
-tog(MS, "Rapid Fire", false, 2, function(v) if applyRapid then applyRapid(v) end end)
-tog(MS, "Rejoin", false, 3, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
+tog(ExploitS, "Rapid Fire", false, 7, function(v) if applyRapid then applyRapid(v) end end)
+tog(ExploitS, "Rejoin", false, 8, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
 
-sel("AIM")
+tog(VisualS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
+tog(VisualS, "Box", cfg.box, 2, function(v) cfg.box=v end)
+tog(VisualS, "Skeleton", cfg.skel, 3, function(v) cfg.skel=v end)
+tog(VisualS, "Name", cfg.name, 4, function(v) cfg.name=v end)
+tog(VisualS, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
+tog(VisualS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
+
+local function applyTheme(idx)
+    themeIndex = idx
+    local t = THEMES[idx]
+    for k,v in pairs(t) do if k ~= "name" then C[k] = v end end
+    Main.BackgroundColor3 = C.bg
+    Sidebar.BackgroundColor3 = C.panel
+    LogoBox.BackgroundColor3 = C.card
+    Float.BackgroundColor3 = C.panel
+    Float.TextColor3 = C.txt
+    ms.Color = C.dim
+    fs.Color = C.dim
+    for _, btn in pairs(CB) do
+        btn.BackgroundColor3 = C.card
+        btn.TextColor3 = C.dim
+    end
+    for _, pg in pairs(PM) do
+        for _, el in ipairs(pg:GetDescendants()) do
+            if el:IsA("TextButton") then
+                el.TextColor3 = C.txt
+            elseif el:IsA("TextLabel") then
+                el.TextColor3 = C.txt
+            elseif el:IsA("Frame") and el.Name ~= "Bar" then
+                if el.BackgroundColor3 ~= Color3.fromRGB(42,42,48) then
+                    el.BackgroundColor3 = C.card
+                end
+            end
+        end
+    end
+end
+
+local themeNames = {}
+for i, t in ipairs(THEMES) do themeNames[i] = t.name end
+row(ColorS, "Theme", themeNames, THEMES[1].name, 1, function(v)
+    for i, t in ipairs(THEMES) do
+        if t.name == v then applyTheme(i); break end
+    end
+end)
+
+local exitBtn = Instance.new("TextButton", ConfigP)
+exitBtn.Size = UDim2.new(1,-16,0,38)
+exitBtn.Position = UDim2.new(0,8,0,20)
+exitBtn.BackgroundColor3 = Color3.fromRGB(140,45,45)
+exitBtn.Text = "Exit"
+exitBtn.TextColor3 = Color3.fromRGB(240,220,220)
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.TextSize = 14
+exitBtn.AutoButtonColor = false
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,8)
+exitBtn.MouseButton1Click:Connect(function()
+    Float.Visible = false
+    Main.Visible = false
+end)
+
+sel("Combat")
 
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
