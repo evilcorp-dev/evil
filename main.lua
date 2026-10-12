@@ -15,7 +15,6 @@ local cfg = {
     tpEnemy=false,
 }
 
--- paleta Kavo
 local C = {
     bg     = Color3.fromRGB(20,20,20),
     panel  = Color3.fromRGB(14,14,14),
@@ -25,7 +24,6 @@ local C = {
     fill   = Color3.fromRGB(200,200,200),
     txt    = Color3.fromRGB(220,220,220),
     dim    = Color3.fromRGB(110,110,110),
-    accent = Color3.fromRGB(200,200,200),
 }
 
 pcall(function()
@@ -61,7 +59,7 @@ fl.Font = Enum.Font.GothamBold
 fl.TextSize = 20
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0,760,0,460)
+Main.Size = UDim2.new(0,780,0,460)
 Main.Position = UDim2.new(0,100,0,80)
 Main.BackgroundColor3 = C.bg
 Main.BorderSizePixel = 0
@@ -112,7 +110,7 @@ do
     end)
 end
 
--- SIDEBAR
+-- SIDEBAR (60px, só ícones)
 local Sidebar = Instance.new("Frame", Main)
 Sidebar.Size = UDim2.new(0,60,1,0)
 Sidebar.BackgroundColor3 = C.panel
@@ -120,7 +118,7 @@ Sidebar.BorderSizePixel = 0
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,8)
 
 local CatFrame = Instance.new("Frame", Sidebar)
-CatFrame.Size = UDim2.new(1,0,0,400)
+CatFrame.Size = UDim2.new(1,0,0,260)
 CatFrame.Position = UDim2.new(0,0,0,20)
 CatFrame.BackgroundTransparency = 1
 local cl = Instance.new("UIListLayout", CatFrame)
@@ -151,10 +149,8 @@ local function sel(n)
     for k,b in pairs(CB) do
         if k == n then
             b.BackgroundColor3 = C.card
-            b.TextColor3 = C.txt
         else
             b.BackgroundColor3 = C.panel
-            b.TextColor3 = C.dim
         end
     end
 end
@@ -164,7 +160,7 @@ local function cat(icon, n, o)
     b.Size = UDim2.new(0,40,0,40)
     b.BackgroundColor3 = C.panel
     b.Text = icon
-    b.TextColor3 = C.dim
+    b.TextColor3 = C.txt
     b.Font = Enum.Font.GothamBold
     b.TextSize = 18
     b.AutoButtonColor = false
@@ -175,7 +171,7 @@ local function cat(icon, n, o)
     return b
 end
 
--- COMPONENTES KAVO
+-- COMPONENTES
 local function card(parent, title, order)
     local c = Instance.new("Frame", parent)
     c.Size = UDim2.new(1,-12,0,0)
@@ -362,19 +358,18 @@ local function btn(parent, label, order, cb, danger)
     return b
 end
 
--- colunas paralelas para uma página
-local function columns(p)
+local function columns(p, count)
     local holder = Instance.new("Frame", p)
     holder.Size = UDim2.new(1,-16,1,-16)
     holder.Position = UDim2.new(0,8,0,8)
     holder.BackgroundTransparency = 1
     local grid = Instance.new("UIGridLayout", holder)
-    grid.CellSize = UDim2.new(0.333,-6,0,0)
+    grid.CellSize = UDim2.new(1/count,-4,0,0)
     grid.CellPadding = UDim2.new(0,8,0,8)
     grid.SortOrder = Enum.SortOrder.LayoutOrder
 
     local cols = {}
-    for i = 1, 3 do
+    for i = 1, count do
         local c = Instance.new("ScrollingFrame", holder)
         c.Size = UDim2.new(0,100,0,100)
         c.BackgroundTransparency = 1
@@ -389,10 +384,9 @@ local function columns(p)
         lay.SortOrder = Enum.SortOrder.LayoutOrder
         cols[i] = c
     end
-    return cols[1], cols[2], cols[3]
+    return table.unpack(cols)
 end
 
--- coluna única
 local function single(p)
     local s = Instance.new("ScrollingFrame", p)
     s.Size = UDim2.new(1,-16,1,-16)
@@ -410,22 +404,21 @@ local function single(p)
 end
 
 local CombatP  = page("Combat")
-local ExploitP = page("Exploits")
 local VisualP  = page("Visuals")
-local ColorP   = page("Colors")
+local ExploitP = page("Exploits")
 local ConfigP  = page("Config")
 
-cat("🎯", "Combat", 1)
-cat("⚡", "Exploits", 2)
-cat("👁", "Visuals", 3)
-cat("🎨", "Colors", 4)
-cat("⚙", "Config", 5)
+-- SIDEBAR: arma (combat), olho (visual), boneco (exploit), engrenagem (config)
+cat("🔫", "Combat", 1)
+cat("👁", "Visuals", 2)
+cat("👤", "Exploits", 3)
+cat("⚙", "Config", 4)
 
 local applyRapid, setFly
 local isVisible, target
 
 -- COMBAT: 3 colunas
-local CC1, CC2, CC3 = columns(CombatP)
+local CC1, CC2, CC3 = columns(CombatP, 3)
 
 local cAim = card(CC1, "Aimbot", 1)
 tog(cAim, "Show", cfg.aim, 1, function(v) cfg.aim=v end)
@@ -460,33 +453,6 @@ sld(cSil, "Fov Size", 30, 600, 40, 7, function(v) end)
 sld(cSil, "Miss Chance", 0, 100, 0, 8, function(v) end)
 sld(cSil, "Max Distance", 50, 1000, 200, 9, function(v) end)
 
--- EXPLOITS: coluna única
-local ES = single(ExploitP)
-local cMove = card(ES, "Movement", 1)
-tog(cMove, "Fly [WASD+Space]", cfg.fly, 1, function(v) cfg.fly=v; if setFly then setFly(v) end end)
-sld(cMove, "Fly Speed", 10, 300, cfg.spd, 2, function(v) cfg.spd=v end)
-tog(cMove, "Speed", cfg.speed, 3, function(v) cfg.speed=v end)
-sld(cMove, "Speed Value", 0, 30, cfg.speedVal, 4, function(v) cfg.speedVal=v end)
-
-local cCombat2 = card(ES, "Combat", 2)
-tog(cCombat2, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
-tog(cCombat2, "Rapid Fire", false, 2, function(v) if applyRapid then applyRapid(v) end end)
-
-local cTele = card(ES, "Teleport", 3)
-tog(cTele, "TP to Enemy", false, 1, function(v)
-    if v then
-        local t = target and target()
-        if t then
-            local c = LP.Character
-            local hr = c and c:FindFirstChild("HumanoidRootPart")
-            if hr then hr.CFrame = CFrame.new(t.Position + Vector3.new(0, 3, 0)) end
-        end
-        task.delay(0.3, function() cfg.tpEnemy = false end)
-    end
-    cfg.tpEnemy = false
-end)
-btn(cTele, "Rejoin", 2, function() TPS:Teleport(game.PlaceId, LP) end)
-
 -- VISUALS
 local VS = single(VisualP)
 local cVis = card(VS, "ESP", 1)
@@ -497,47 +463,43 @@ tog(cVis, "Name", cfg.name, 4, function(v) cfg.name=v end)
 tog(cVis, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
 tog(cVis, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
 
--- COLORS
-local CS = single(ColorP)
-local cCol = card(CS, "Theme", 1)
-local themes = {"Preto", "Verde", "Branco", "Roxo", "Vermelho", "Azul"}
-local THEME_DATA = {
-    Preto    = { bg=Color3.fromRGB(20,20,20), panel=Color3.fromRGB(14,14,14), card=Color3.fromRGB(30,30,30), cardHd=Color3.fromRGB(34,34,34), track=Color3.fromRGB(55,55,55), fill=Color3.fromRGB(200,200,200), txt=Color3.fromRGB(220,220,220), dim=Color3.fromRGB(110,110,110) },
-    Verde    = { bg=Color3.fromRGB(14,22,16), panel=Color3.fromRGB(10,16,12), card=Color3.fromRGB(20,34,24), cardHd=Color3.fromRGB(24,40,28), track=Color3.fromRGB(40,70,50), fill=Color3.fromRGB(100,220,140), txt=Color3.fromRGB(220,240,225), dim=Color3.fromRGB(120,170,140) },
-    Branco   = { bg=Color3.fromRGB(230,230,230), panel=Color3.fromRGB(215,215,215), card=Color3.fromRGB(245,245,245), cardHd=Color3.fromRGB(235,235,235), track=Color3.fromRGB(190,190,190), fill=Color3.fromRGB(80,80,80), txt=Color3.fromRGB(30,30,30), dim=Color3.fromRGB(120,120,120) },
-    Roxo     = { bg=Color3.fromRGB(18,12,26), panel=Color3.fromRGB(12,8,18), card=Color3.fromRGB(28,18,42), cardHd=Color3.fromRGB(34,22,50), track=Color3.fromRGB(70,45,110), fill=Color3.fromRGB(180,120,230), txt=Color3.fromRGB(230,220,240), dim=Color3.fromRGB(140,120,170) },
-    Vermelho = { bg=Color3.fromRGB(24,12,12), panel=Color3.fromRGB(16,8,8), card=Color3.fromRGB(38,18,18), cardHd=Color3.fromRGB(46,22,22), track=Color3.fromRGB(90,40,40), fill=Color3.fromRGB(220,100,100), txt=Color3.fromRGB(240,220,220), dim=Color3.fromRGB(170,120,120) },
-    Azul     = { bg=Color3.fromRGB(12,16,24), panel=Color3.fromRGB(8,12,18), card=Color3.fromRGB(18,28,44), cardHd=Color3.fromRGB(22,34,52), track=Color3.fromRGB(40,70,120), fill=Color3.fromRGB(100,170,240), txt=Color3.fromRGB(220,228,240), dim=Color3.fromRGB(120,145,185) },
-}
-for i, name in ipairs(themes) do
-    btn(cCol, name, i, function()
-        local t = THEME_DATA[name]
-        for k,v in pairs(t) do C[k] = v end
-        Main.BackgroundColor3 = C.bg
-        Sidebar.BackgroundColor3 = C.panel
-        Float.BackgroundColor3 = C.panel
-        ms.Color = C.card
-        fs.Color = C.card
-        -- reaplica nas linhas conhecidas
-        for _, el in ipairs(Main:GetDescendants()) do
-            if el:IsA("Frame") and el.Name == "" then
-                if el.Parent and el.Parent:IsA("Frame") and el.Parent.Name == "" then end
-            end
+-- EXPLOITS
+local ES = single(ExploitP)
+local cMove = card(ES, "Movement", 1)
+tog(cMove, "Fly [WASD+Space]", cfg.fly, 1, function(v) cfg.fly=v; if setFly then setFly(v) end end)
+sld(cMove, "Fly Speed", 10, 300, cfg.spd, 2, function(v) cfg.spd=v end)
+tog(cMove, "Speed", cfg.speed, 3, function(v) cfg.speed=v end)
+sld(cMove, "Speed Value", 0, 30, cfg.speedVal, 4, function(v) cfg.speedVal=v end)
+
+local cCb = card(ES, "Combat", 2)
+tog(cCb, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
+tog(cCb, "Rapid Fire", false, 2, function(v) if applyRapid then applyRapid(v) end end)
+
+local cTp = card(ES, "Teleport", 3)
+tog(cTp, "TP to Enemy", false, 1, function(v)
+    if v then
+        local t = target and target()
+        if t then
+            local c = LP.Character
+            local hr = c and c:FindFirstChild("HumanoidRootPart")
+            if hr then hr.CFrame = CFrame.new(t.Position + Vector3.new(0,3,0)) end
         end
-    end)
-end
+        task.delay(0.3, function() cfg.tpEnemy = false end)
+    end
+    cfg.tpEnemy = false
+end)
+btn(cTp, "Rejoin", 2, function() TPS:Teleport(game.PlaceId, LP) end)
 
 -- CONFIG
 local CfS = single(ConfigP)
-local cExit = card(CfS, "Config", 1)
-btn(cExit, "Exit", 1, function()
+local cCfg = card(CfS, "Config", 1)
+btn(cCfg, "Exit", 1, function()
     Float.Visible = false
     Main.Visible = false
 end, true)
 
 sel("Combat")
 
--- ============ resto das funções (iguais) ============
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
 
