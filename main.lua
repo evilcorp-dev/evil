@@ -448,4 +448,312 @@ toggle(PS, "Fly", cfg.fly, function(v) cfg.fly = v; if setFly then setFly(v) end
 slider(PS, "Fly Speed", 10, 300, cfg.spd, function(v) cfg.spd = v end)
 
 toggle(MS, "Rapid Fire", cfg.rapidFire, function(v) cfg.rapidFire = v; if applyRapid then applyRapid() end end)
-toggle(MS, "Rejoin", false, function(v) if v then TPS:Teleport(game.PlaceId, Local
+toggle(MS, "Rejoin", false, function(v) if v then toggle(MS, "Rejoin", false, function(v)
+    if v then TPS:Teleport(game.PlaceId, LocalPlayer) end
+end)
+
+selectCat("AIM")
+
+local hasDrawing = pcall(function() return Drawing.new end)
+local Cache = {}
+
+local function mkESP(p)
+    if p == LocalPlayer or not hasDrawing then return end
+    if Cache[p] then return end
+    local d = {}
+    d.Box  = Drawing.new("Square"); d.Box.Thickness = 1; d.Box.Filled = false; d.Box.Transparency = 1; d.Box.Visible = false
+    d.Name = Drawing.new("Text");   d.Name.Size = 14; d.Name.Center = true; d.Name.Outline = true; d.Name.Visible = false
+    d.HP   = Drawing.new("Line");   d.HP.Thickness = 2; d.HP.Color = Color3.fromRGB(0,255,100); d.HP.Visible = false
+    d.Dist = Drawing.new("Text");   d.Dist.Size = 12; d.Dist.Center = true; d.Dist.Outline = true; d.Dist.Visible = false
+    d.Line = Drawing.new("Line");   d.Line.Thickness = 1; d.Line.Visible = false
+    d.Skel = {}
+    local bones = {"Head","UpperTorso","LowerTorso","LeftUpperArm","LeftLowerArm","LeftHand","RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}
+    for _, bn in ipairs(bones) do
+        local ln = Drawing.new("Line")
+        ln.Thickness = 1
+        ln.Color = Color3.fromRGB(230,230,235)
+        ln.Visible = false
+        d.Skel[bn] = ln
+    end
+    Cache[p] = d
+end
+
+for _, p in ipairs(Players:GetPlayers()) do mkESP(p) end
+Players.PlayerAdded:Connect(mkESP)
+Players.PlayerRemoving:Connect(function(p)
+    if Cache[p] then
+        for _, o in pairs(Cache[p]) do
+            if typeof(o) == "table" then
+                for _, l in pairs(o) do pcall(function() l:Remove() end) end
+            else
+                pcall(function() o:Remove() end)
+            end
+        end
+        Cache[p] = nil
+    end
+end)
+
+local FovCircle
+if hasDrawing then
+    FovCircle = Drawing.new("Circle")
+    FovCircle.Thickness = 1
+    FovCircle.Color = Color3.fromRGB(230,230,235)
+    FovCircle.Transparency = 0.7
+    FovCircle.NumSides = 64
+    FovCircle.Radius = cfg.fov
+    FovCircle.Filled = false
+    FovCircle.Visible = false
+end
+
+local function w2v(pos)
+    local s = Camera:WorldToViewportPoint(pos)
+    return Vector2.new(s.X, s.Y)
+end
+
+local function hide(e)
+    e.Box.Visible=false e.Name.Visible=false e.HP.Visible=false
+    e.Dist.Visible=false e.Line.Visible=false
+    for _, l in pairs(e.Skel) do l.Visible = false end
+end
+
+local function bbox(char)
+    local ok, cf, size = pcall(function() return char:GetBoundingBox() end)
+    if not ok then return nil end
+    local p0 = w2v(cf.Position - size/2)
+    local p1 = w2v(cf.Position + size/2)
+    return math.min(p0.X,p1.X), math.min(p0.Y,p1.Y), math.max(p0.X,p1.X), math.max(p0.Y,p1.Y)
+end
+
+RunService.RenderStepped:Connect(function()
+    if FovCircle then
+        FovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        FovCircle.Radius = cfg.fov
+        FovCircle.Visible = cfg.fovCircle
+    end
+    for p, e in pairs(Cache) do
+        local c  = p.Character
+        local hr = c and c:FindFirstChild("HumanoidRootPart")
+        local hd = c and c:FindFirstChild("Head")
+        local hm = c and c:FindFirstChildOfClass("Humanoid")
+        if not cfg.esp or not c or not hr or not hd or not hm or hm.Health <= 0 then
+            hide(e)
+        else
+            local minx, miny, maxx, maxy = bbox(c)
+            if not minx then hide(e) else
+                local x, y, w, h = minx, miny, maxx-minx, maxy-miny
+                e.Box.Size = Vector2.new(w,h)
+                e.Box.Position = Vector2.new(x,y)
+                e.Box.Color = Color3.fromRGB(230,230,235)
+                e.Box.Visible = cfg.box
+
+                e.Name.Text = p.Name
+                e.Name.Position = Vector2.new(x+w/2, y-18)
+                e.Name.Color = Color3.fromRGB(255,255,255)
+                e.Name.Visible = cfg.name
+
+                local hpr = hm.Health / math.max(hm.MaxHealth, 1)
+                e.HP.From = Vector2.new(x-6, y+h)
+                e.HP.To   = Vector2.new(x-6, y+h-h*hpr)
+                e.HP.Visible = cfg.hp
+
+                if cfg.dist then
+                    local mr = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if mr then
+                        e.Dist.Text = "["..math.floor((mr.Position-hr.Position).Magnitude).."]"
+                        e.Dist.Position = Vector2.new(x+w/2, y+h+4)
+                        e.Dist.Color = Color3.fromRGB(255,255,255)
+                        e.Dist.Visible = true
+                    end
+                else e.Dist.Visible = false end
+
+                if cfg.line then
+                    e.Line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                    e.Line.To   = Vector2.new(x+w/2, y+h)
+                    e.Line.Color = Color3.fromRGB(230,230,235)
+                    e.Line.Visible = true
+                else e.Line.Visible = false end
+
+                if cfg.skel then
+                    local bones = {
+                        {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+                        {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+                        {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+                        {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+                        {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+                    }
+                    for _, pr in ipairs(bones) do
+                        local a = c:FindFirstChild(pr[1])
+                        local b = c:FindFirstChild(pr[2])
+                        local ln = e.Skel[pr[1]]
+                        if a and b and ln then
+                            ln.From = w2v(a.Position)
+                            ln.To   = w2v(b.Position)
+                            ln.Visible = true
+                        end
+                    end
+                else
+                    for _, ln in pairs(e.Skel) do ln.Visible = false end
+                end
+            end
+        end
+    end
+end)
+
+local function target()
+    local best, bestD = nil, cfg.fov
+    local cx = Camera.ViewportSize.X/2
+    local cy = Camera.ViewportSize.Y/2
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local c  = p.Character
+            local hd = c and c:FindFirstChild("Head")
+            local hm = c and c:FindFirstChildOfClass("Humanoid")
+            if hd and hm and hm.Health > 0 then
+                local sp, on = Camera:WorldToViewportPoint(hd.Position)
+                if on then
+                    local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
+                    if d < bestD then bestD = d; best = hd end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function aimDown()
+    if cfg.aimMouse then
+        if cfg.aimMouseBtn == 1 then return UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) end
+        if cfg.aimMouseBtn == 2 then return UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) end
+        return false
+    end
+    return UIS:IsKeyDown(cfg.aimKey)
+end
+
+RunService.RenderStepped:Connect(function()
+    if not cfg.aim then return end
+    if not aimDown() then return end
+    local t = target()
+    if t then
+        local sm = 1 - (cfg.smooth/100)
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Position), sm)
+    end
+end)
+
+do
+    local silentOK = false
+    if hookmetamethod and getrawmetatable and checkcaller then
+        pcall(function()
+            local mt = getrawmetatable(game)
+            setreadonly(mt, false)
+            local old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if cfg.silent and not checkcaller() and self == LocalPlayer:GetMouse() then
+                    if method == "Hit" or method == "get_Hit" then
+                        local t = target()
+                        if t then return CFrame.new(t.Position) end
+                    end
+                end
+                return old(self, ...)
+            end))
+            setreadonly(mt, true)
+            silentOK = true
+        end)
+    end
+    if not silentOK then
+        RunService.RenderStepped:Connect(function()
+            if not cfg.silent then return end
+            local t = target()
+            if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position) end
+        end)
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not cfg.trigger then return end
+    local t = target()
+    if t and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - t.Position).Magnitude
+        if dist < 100 then pcall(function() mouse1click() end) end
+    end
+end)
+
+local rapidConn
+function applyRapid()
+    if rapidConn then rapidConn:Disconnect() rapidConn = nil end
+    if not cfg.rapidFire then return end
+    rapidConn = RunService.Heartbeat:Connect(function()
+        local c = LocalPlayer.Character
+        if not c then return end
+        for _, tool in ipairs(c:GetChildren()) do
+            if tool:IsA("Tool") then
+                pcall(function()
+                    if tool:FindFirstChild("FireRate") then tool.FireRate.Value = 0.01 end
+                    if tool:FindFirstChild("FireRate2") then tool.FireRate2.Value = 0.01 end
+                    if tool:FindFirstChild("Settings") and tool.Settings:FindFirstChild("FireRate") then
+                        tool.Settings.FireRate.Value = 0.01
+                    end
+                end)
+            end
+        end
+    end)
+end
+
+local function applyGod()
+    local c = LocalPlayer.Character
+    if not c then return end
+    local hm = c:FindFirstChildOfClass("Humanoid")
+    if hm then
+        hm.MaxHealth = math.huge
+        hm.Health = math.huge
+        if not hm:GetAttribute("EvilGod") then
+            hm:SetAttribute("EvilGod", true)
+            hm.HealthChanged:Connect(function(v)
+                if cfg.god and v < math.huge then hm.Health = math.huge end
+            end)
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.god then applyGod() end
+end)
+
+function setFly(s)
+    local c = LocalPlayer.Character
+    if not c then return end
+    local h = c:FindFirstChild("HumanoidRootPart")
+    if not h then return end
+    if s then
+        if not _G.EvilBV then
+            _G.EvilBV = Instance.new("BodyVelocity", h)
+            _G.EvilBV.MaxForce = Vector3.new(1e5,1e5,1e5)
+            _G.EvilBV.Velocity = Vector3.zero
+            _G.EvilBG = Instance.new("BodyGyro", h)
+            _G.EvilBG.MaxTorque = Vector3.new(1e5,1e5,1e5)
+            _G.EvilBG.P = 1000
+            _G.EvilBG.D = 50
+        end
+    else
+        if _G.EvilBV then _G.EvilBV:Destroy() _G.EvilBV = nil end
+        if _G.EvilBG then _G.EvilBG:Destroy() _G.EvilBG = nil end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not cfg.fly or not _G.EvilBV then return end
+    local mv = Vector3.zero
+    if UIS:IsKeyDown(Enum.KeyCode.W) then mv = mv + Camera.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then mv = mv - Camera.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then mv = mv - Camera.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then mv = mv + Camera.CFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.Space) then mv = mv + Vector3.new(0,1,0) end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then mv = mv - Vector3.new(0,1,0) end
+    if mv.Magnitude > 0 then mv = mv.Unit * cfg.spd end
+    _G.EvilBV.Velocity = mv
+    _G.EvilBG.CFrame = Camera.CFrame
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if cfg.fly then setFly(true) end
+    if cfg.god then applyGod() end
+end)
