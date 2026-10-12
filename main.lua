@@ -1,6 +1,3 @@
--- EVIL UI · KAVO EDITION
--- Um arquivo. Sem módulos externos.
-
 local Players    = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS        = game:GetService("UserInputService")
@@ -9,8 +6,6 @@ local TPS        = game:GetService("TeleportService")
 local LP         = Players.LocalPlayer
 local Camera     = Workspace.CurrentCamera
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-
 local cfg = {
     aim=false, aimPart="Head", silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
@@ -18,10 +13,22 @@ local cfg = {
     fly=false, spd=60, speed=false, speedVal=0, god=false, rapid=false, tpEnemy=false,
 }
 
+-- CARREGAR KAVO
+local Library
+local ok, err = pcall(function()
+    Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+end)
+
+if not ok or not Library then
+    warn("[Evil] Falha ao carregar Kavo: " .. tostring(err))
+    return
+end
+
 local CURRENT_THEME = "DarkTheme"
 
-local function buildWindow(themeName)
-    local Win = Library.CreateLib("Evil", themeName)
+local Window
+local function buildWindow(theme)
+    local Win = Library:CreateLib("Evil", theme)
 
     local CombatTab  = Win:NewTab("Combat")
     local ExploitTab = Win:NewTab("Exploits")
@@ -75,30 +82,38 @@ local function buildWindow(themeName)
     TS:NewButton("Rejoin", "", function() TPS:Teleport(game.PlaceId, LP) end)
 
     local ColorS = ColorTab:NewSection("Theme")
-    local themeNames = {"DarkTheme","BloodTheme","GrapeTheme","Synapse","Midnight","Serpent"}
-    ColorS:NewDropdown("Theme", "Troca tema (recria UI)", themeNames, function(v)
+    ColorS:NewDropdown("Theme", "Troca tema (recria UI)", {"DarkTheme","BloodTheme","GrapeTheme","Synapse","Midnight","Serpent"}, function(v)
         CURRENT_THEME = v
-        if Library and Library.Destroy then pcall(function() Library:Destroy() end) end
-        task.wait(0.2)
-        buildWindow(v)
+        pcall(function() Library:Destroy() end)
+        task.wait(0.3)
+        Window = buildWindow(v)
     end)
 
     local CfgS = ConfigTab:NewSection("Config")
     CfgS:NewButton("Exit", "Fecha a UI", function()
         pcall(function() Library:Destroy() end)
-        for _, g in ipairs(game:GetService("CoreGui"):GetChildren()) do
-            if g:IsA("ScreenGui") and g.Name:lower():find("kavo") then g:Destroy() end
-        end
     end)
 
     return Win
 end
 
-local Window = buildWindow(CURRENT_THEME)
+Window = buildWindow(CURRENT_THEME)
+
+-- Se o Kavo não abriu a UI por algum motivo, tenta reabrir
+pcall(function() Library:ToggleUI() end)
+
+-- Bind para abrir/fechar com RightShift
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        pcall(function() Library:ToggleUI() end)
+    end
+end)
 
 local applyRapid, setFly
 local isVisible, target
 
+-- ESP
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
 
