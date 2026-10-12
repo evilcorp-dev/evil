@@ -1,119 +1,501 @@
-local Players    = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UIS        = game:GetService("UserInputService")
-local Workspace  = game:GetService("Workspace")
-local TPS        = game:GetService("TeleportService")
-local LP         = Players.LocalPlayer
-local Camera     = Workspace.CurrentCamera
+local Players     = game:GetService("Players")
+local RunService  = game:GetService("RunService")
+local UIS         = game:GetService("UserInputService")
+local Workspace   = game:GetService("Workspace")
+local TPS         = game:GetService("TeleportService")
+local LP          = Players.LocalPlayer
+local Camera      = Workspace.CurrentCamera
 
 local cfg = {
+    esp=false, box=true, skel=true, name=true, hp=true, dist=true,
     aim=false, aimPart="Head", silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
-    esp=false, box=true, skel=true, name=true, hp=true, dist=true,
-    fly=false, spd=60, speed=false, speedVal=0, god=false, rapid=false, tpEnemy=false,
+    god=false, fly=false, spd=60,
+    speed=false, speedVal=0,
+    tpEnemy=false,
 }
 
--- CARREGAR KAVO
-local Library
-local ok, err = pcall(function()
-    Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-end)
+local THEMES = {
+    { name="Preto",    bg=Color3.fromRGB(11,11,13), panel=Color3.fromRGB(15,15,18), card=Color3.fromRGB(22,22,26), on=Color3.fromRGB(48,48,56),  txt=Color3.fromRGB(228,228,234), dim=Color3.fromRGB(130,130,140), accent=Color3.fromRGB(220,40,40) },
+    { name="Verde",    bg=Color3.fromRGB(9,15,11),  panel=Color3.fromRGB(12,22,15), card=Color3.fromRGB(18,32,22), on=Color3.fromRGB(40,110,65), txt=Color3.fromRGB(220,240,225), dim=Color3.fromRGB(130,180,145), accent=Color3.fromRGB(80,220,120) },
+    { name="Branco",   bg=Color3.fromRGB(225,225,230), panel=Color3.fromRGB(238,238,242), card=Color3.fromRGB(250,250,252), on=Color3.fromRGB(175,175,185), txt=Color3.fromRGB(18,18,22), dim=Color3.fromRGB(90,90,100), accent=Color3.fromRGB(210,40,40) },
+    { name="Roxo",     bg=Color3.fromRGB(14,9,22),  panel=Color3.fromRGB(20,12,32), card=Color3.fromRGB(28,16,44), on=Color3.fromRGB(85,50,140), txt=Color3.fromRGB(230,220,240), dim=Color3.fromRGB(150,130,180), accent=Color3.fromRGB(180,90,230) },
+    { name="Vermelho", bg=Color3.fromRGB(18,9,9),   panel=Color3.fromRGB(28,12,12), card=Color3.fromRGB(40,16,16), on=Color3.fromRGB(130,40,40), txt=Color3.fromRGB(240,220,220), dim=Color3.fromRGB(180,130,130), accent=Color3.fromRGB(230,60,60) },
+    { name="Azul",     bg=Color3.fromRGB(9,13,20),  panel=Color3.fromRGB(12,18,30), card=Color3.fromRGB(16,26,42), on=Color3.fromRGB(40,80,140), txt=Color3.fromRGB(220,228,240), dim=Color3.fromRGB(130,150,190), accent=Color3.fromRGB(70,150,230) },
+}
 
-if not ok or not Library then
-    warn("[Evil] Falha ao carregar Kavo: " .. tostring(err))
-    return
-end
+local C = {}
+for k,v in pairs(THEMES[1]) do C[k] = v end
 
-local CURRENT_THEME = "DarkTheme"
-
-local Window
-local function buildWindow(theme)
-    local Win = Library:CreateLib("Evil", theme)
-
-    local CombatTab  = Win:NewTab("Combat")
-    local ExploitTab = Win:NewTab("Exploits")
-    local VisualTab  = Win:NewTab("Visuals")
-    local ColorTab   = Win:NewTab("Colors")
-    local ConfigTab  = Win:NewTab("Config")
-
-    local AimS = CombatTab:NewSection("Aimbot")
-    AimS:NewToggle("Aimbot", "Ativa aimbot", function(v) cfg.aim = v end)
-    AimS:NewDropdown("Aim Part", "Head / Neck / Body", {"Head","Neck","Body"}, function(v) cfg.aimPart = v end)
-    AimS:NewSlider("FOV", "FOV size", 600, 30, function(v) cfg.fov = v end)
-    AimS:NewSlider("Smooth", "Suavização", 100, 1, function(v) cfg.smooth = v end)
-    AimS:NewToggle("Aim Visible", "Só alvo visível", function(v) cfg.aimVisible = v end)
-    AimS:NewToggle("FOV Circle", "Mostra círculo", function(v) cfg.fovCircle = v end)
-
-    local SilentS = CombatTab:NewSection("Silent / Trigger")
-    SilentS:NewToggle("Silent Aim", "Hook no mouse", function(v) cfg.silent = v end)
-    SilentS:NewToggle("Triggerbot", "Atira sozinho", function(v) cfg.trigger = v end)
-
-    local VisS = VisualTab:NewSection("ESP")
-    VisS:NewToggle("ATIVAR ESP", "Ativa ESP", function(v) cfg.esp = v end)
-    VisS:NewToggle("Box", "", function(v) cfg.box = v end)
-    VisS:NewToggle("Skeleton", "", function(v) cfg.skel = v end)
-    VisS:NewToggle("Name", "", function(v) cfg.name = v end)
-    VisS:NewToggle("Health", "", function(v) cfg.hp = v end)
-    VisS:NewToggle("Distance", "", function(v) cfg.dist = v end)
-
-    local MoveS = ExploitTab:NewSection("Movement")
-    MoveS:NewToggle("Fly [WASD+Space]", "", function(v) cfg.fly = v; if setFly then setFly(v) end end)
-    MoveS:NewSlider("Fly Speed", "", 300, 10, function(v) cfg.spd = v end)
-    MoveS:NewToggle("Speed", "", function(v) cfg.speed = v end)
-    MoveS:NewSlider("Speed Value", "", 30, 0, function(v) cfg.speedVal = v end)
-
-    local CS = ExploitTab:NewSection("Combat")
-    CS:NewToggle("Godmode", "", function(v) cfg.god = v end)
-    CS:NewToggle("Rapid Fire", "", function(v) cfg.rapid = v; if applyRapid then applyRapid(v) end end)
-
-    local TS = ExploitTab:NewSection("Teleport")
-    TS:NewToggle("TP to Enemy", "", function(v)
-        if v then
-            local t = target and target()
-            if t then
-                local c = LP.Character
-                local hr = c and c:FindFirstChild("HumanoidRootPart")
-                if hr then hr.CFrame = CFrame.new(t.Position + Vector3.new(0,3,0)) end
-            end
-            task.delay(0.3, function() cfg.tpEnemy = false end)
-        end
-        cfg.tpEnemy = false
-    end)
-    TS:NewButton("Rejoin", "", function() TPS:Teleport(game.PlaceId, LP) end)
-
-    local ColorS = ColorTab:NewSection("Theme")
-    ColorS:NewDropdown("Theme", "Troca tema (recria UI)", {"DarkTheme","BloodTheme","GrapeTheme","Synapse","Midnight","Serpent"}, function(v)
-        CURRENT_THEME = v
-        pcall(function() Library:Destroy() end)
-        task.wait(0.3)
-        Window = buildWindow(v)
-    end)
-
-    local CfgS = ConfigTab:NewSection("Config")
-    CfgS:NewButton("Exit", "Fecha a UI", function()
-        pcall(function() Library:Destroy() end)
-    end)
-
-    return Win
-end
-
-Window = buildWindow(CURRENT_THEME)
-
--- Se o Kavo não abriu a UI por algum motivo, tenta reabrir
-pcall(function() Library:ToggleUI() end)
-
--- Bind para abrir/fechar com RightShift
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        pcall(function() Library:ToggleUI() end)
+pcall(function()
+    if game:GetService("CoreGui"):FindFirstChild("EvilUI") then
+        game:GetService("CoreGui").EvilUI:Destroy()
     end
 end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "EvilUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+pcall(function() gui.Parent = game:GetService("CoreGui") end)
+if not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
+
+local Float = Instance.new("TextButton")
+Float.Size = UDim2.new(0,58,0,58)
+Float.Position = UDim2.new(0,30,0,120)
+Float.BackgroundColor3 = C.panel
+Float.Text = "Evil"
+Float.TextColor3 = C.accent
+Float.Font = Enum.Font.GothamBlack
+Float.TextSize = 14
+Float.AutoButtonColor = false
+Float.Parent = gui
+Instance.new("UICorner", Float).CornerRadius = UDim.new(1,0)
+local fs = Instance.new("UIStroke", Float)
+fs.Color = C.accent
+fs.Thickness = 1.5
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0,700,0,440)
+Main.Position = UDim2.new(0,100,0,80)
+Main.BackgroundColor3 = C.bg
+Main.BorderSizePixel = 0
+Main.Visible = false
+Main.Parent = gui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
+local ms = Instance.new("UIStroke", Main)
+ms.Color = C.on
+ms.Thickness = 1
+
+do
+    local drag, ds, sp
+    Main.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true; ds = i.Position; sp = Main.AbsolutePosition
+        end
+    end)
+    Main.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local d = i.Position - ds
+            Main.Position = UDim2.new(0, sp.X + d.X, 0, sp.Y + d.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end
+    end)
+end
+
+do
+    local drag, ds, sp, moved
+    Float.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true; moved = false; ds = i.Position; sp = Float.AbsolutePosition
+        end
+    end)
+    Float.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local d = i.Position - ds
+            if d.Magnitude > 5 then moved = true end
+            Float.Position = UDim2.new(0, sp.X + d.X, 0, sp.Y + d.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            if drag and not moved then Main.Visible = not Main.Visible end
+            drag = false
+        end
+    end)
+end
+
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size = UDim2.new(0,155,1,0)
+Sidebar.BackgroundColor3 = C.panel
+Sidebar.BorderSizePixel = 0
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,10)
+
+local LogoBox = Instance.new("Frame", Sidebar)
+LogoBox.Size = UDim2.new(1,0,0,80)
+LogoBox.Position = UDim2.new(0,0,0,6)
+LogoBox.BackgroundTransparency = 1
+
+local LogoLabel = Instance.new("TextLabel", LogoBox)
+LogoLabel.Size = UDim2.new(1,0,1,0)
+LogoLabel.BackgroundTransparency = 1
+LogoLabel.Text = "Evil"
+LogoLabel.TextColor3 = C.accent
+LogoLabel.Font = Enum.Font.GothamBlack
+LogoLabel.TextSize = 34
+LogoLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local CatFrame = Instance.new("Frame", Sidebar)
+CatFrame.Size = UDim2.new(1,-16,1,-102)
+CatFrame.Position = UDim2.new(0,8,0,96)
+CatFrame.BackgroundTransparency = 1
+local cl = Instance.new("UIListLayout", CatFrame)
+cl.Padding = UDim.new(0,3)
+cl.SortOrder = Enum.SortOrder.LayoutOrder
+
+local Pages = Instance.new("Frame", Main)
+Pages.Size = UDim2.new(1,-155,1,0)
+Pages.Position = UDim2.new(0,155,0,0)
+Pages.BackgroundTransparency = 1
+Pages.ClipsDescendants = true
+
+local PM, CB = {}, {}
+
+local function page(n)
+    local p = Instance.new("Frame", Pages)
+    p.Size = UDim2.new(1,0,1,0)
+    p.BackgroundTransparency = 1
+    p.Visible = false
+    PM[n] = p
+
+    local hdr = Instance.new("TextLabel", p)
+    hdr.Name = "Header"
+    hdr.Size = UDim2.new(1,-28,0,28)
+    hdr.Position = UDim2.new(0,20,0,16)
+    hdr.BackgroundTransparency = 1
+    hdr.Text = string.upper(n)
+    hdr.TextColor3 = C.dim
+    hdr.Font = Enum.Font.GothamBold
+    hdr.TextSize = 11
+    hdr.TextXAlignment = Enum.TextXAlignment.Left
+
+    local line = Instance.new("Frame", p)
+    line.Name = "HeaderLine"
+    line.Size = UDim2.new(1,-28,0,1)
+    line.Position = UDim2.new(0,20,0,46)
+    line.BackgroundColor3 = C.on
+    line.BorderSizePixel = 0
+
+    return p
+end
+
+local function sel(n)
+    for k,v in pairs(PM) do v.Visible = (k==n) end
+    for k,b in pairs(CB) do
+        if k == n then
+            b.BackgroundColor3 = C.on
+            if b:FindFirstChild("Label") then b.Label.TextColor3 = C.txt end
+            if b:FindFirstChild("Indicator") then b.Indicator.Visible = true end
+        else
+            b.BackgroundColor3 = C.panel
+            if b:FindFirstChild("Label") then b.Label.TextColor3 = C.dim end
+            if b:FindFirstChild("Indicator") then b.Indicator.Visible = false end
+        end
+    end
+end
+
+local function cat(icon, n, o)
+    local b = Instance.new("TextButton", CatFrame)
+    b.Size = UDim2.new(1,0,0,32)
+    b.BackgroundColor3 = C.panel
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.LayoutOrder = o
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+
+    local ind = Instance.new("Frame", b)
+    ind.Name = "Indicator"
+    ind.Size = UDim2.new(0,3,0,16)
+    ind.Position = UDim2.new(0,0,0.5,-8)
+    ind.BackgroundColor3 = C.accent
+    ind.BorderSizePixel = 0
+    ind.Visible = false
+
+    local ic = Instance.new("TextLabel", b)
+    ic.Size = UDim2.new(0,26,1,0)
+    ic.Position = UDim2.new(0,10,0,0)
+    ic.BackgroundTransparency = 1
+    ic.Text = icon
+    ic.TextColor3 = C.txt
+    ic.Font = Enum.Font.GothamBold
+    ic.TextSize = 13
+
+    local lb = Instance.new("TextLabel", b)
+    lb.Name = "Label"
+    lb.Size = UDim2.new(1,-40,1,0)
+    lb.Position = UDim2.new(0,36,0,0)
+    lb.BackgroundTransparency = 1
+    lb.Text = n
+    lb.TextColor3 = C.dim
+    lb.Font = Enum.Font.GothamBold
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
+    b.MouseButton1Click:Connect(function() sel(n) end)
+    CB[n] = b
+    return b
+end
+
+local function tog(p, label, def, order, cb)
+    local b = Instance.new("TextButton", p)
+    b.Size = UDim2.new(1,-36,0,38)
+    b.Position = UDim2.new(0,18,0,0)
+    b.BackgroundColor3 = C.card
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.LayoutOrder = order or 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+
+    local l = Instance.new("TextLabel", b)
+    l.Size = UDim2.new(1,-46,1,0)
+    l.Position = UDim2.new(0,12,0,0)
+    l.BackgroundTransparency = 1
+    l.Text = label
+    l.TextColor3 = C.txt
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+
+    local chk = Instance.new("Frame", b)
+    chk.Size = UDim2.new(0,18,0,18)
+    chk.Position = UDim2.new(1,-30,0.5,-9)
+    chk.BackgroundColor3 = def and C.accent or Color3.fromRGB(32,32,38)
+    chk.BorderSizePixel = 0
+    Instance.new("UICorner", chk).CornerRadius = UDim.new(0,4)
+
+    local check = Instance.new("TextLabel", chk)
+    check.Size = UDim2.new(1,0,1,0)
+    check.BackgroundTransparency = 1
+    check.Text = "✓"
+    check.TextColor3 = Color3.fromRGB(255,255,255)
+    check.Font = Enum.Font.GothamBold
+    check.TextSize = 12
+    check.Visible = def
+
+    local s = def
+    b.MouseButton1Click:Connect(function()
+        s = not s
+        chk.BackgroundColor3 = s and C.accent or Color3.fromRGB(32,32,38)
+        check.Visible = s
+        cb(s)
+    end)
+end
+
+local function sld(p, label, mn, mx, def, order, cb)
+    local h = Instance.new("Frame", p)
+    h.Size = UDim2.new(1,-36,0,48)
+    h.Position = UDim2.new(0,18,0,0)
+    h.BackgroundColor3 = C.card
+    h.LayoutOrder = order or 0
+    Instance.new("UICorner", h).CornerRadius = UDim.new(0,6)
+
+    local lb = Instance.new("TextLabel", h)
+    lb.Size = UDim2.new(1,-70,0,16)
+    lb.Position = UDim2.new(0,12,0,4)
+    lb.BackgroundTransparency = 1
+    lb.Text = label
+    lb.TextColor3 = C.txt
+    lb.Font = Enum.Font.Gotham
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
+    local val = Instance.new("TextLabel", h)
+    val.Size = UDim2.new(0,50,0,16)
+    val.Position = UDim2.new(1,-60,0,4)
+    val.BackgroundTransparency = 1
+    val.Text = tostring(def)
+    val.TextColor3 = C.dim
+    val.Font = Enum.Font.GothamBold
+    val.TextSize = 12
+    val.TextXAlignment = Enum.TextXAlignment.Right
+
+    local bar = Instance.new("Frame", h)
+    bar.Size = UDim2.new(1,-24,0,3)
+    bar.Position = UDim2.new(0,12,0,34)
+    bar.BackgroundColor3 = Color3.fromRGB(36,36,42)
+    bar.BorderSizePixel = 0
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((def-mn)/(mx-mn),0,1,0)
+    fill.BackgroundColor3 = C.accent
+    fill.BorderSizePixel = 0
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+    local dr = false
+    local function upd(i)
+        local pr = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local v = math.floor(mn + (mx-mn)*pr)
+        fill.Size = UDim2.new(pr,0,1,0)
+        val.Text = tostring(v)
+        cb(v)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dr = true; upd(i)
+        end
+    end)
+    bar.InputChanged:Connect(function(i)
+        if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end
+    end)
+end
+
+local function row(p, label, opts, def, order, cb)
+    local h = Instance.new("Frame", p)
+    h.Size = UDim2.new(1,-36,0,56)
+    h.Position = UDim2.new(0,18,0,0)
+    h.BackgroundColor3 = C.card
+    h.LayoutOrder = order or 0
+    Instance.new("UICorner", h).CornerRadius = UDim.new(0,6)
+
+    local lb = Instance.new("TextLabel", h)
+    lb.Size = UDim2.new(1,-20,0,16)
+    lb.Position = UDim2.new(0,12,0,4)
+    lb.BackgroundTransparency = 1
+    lb.Text = label
+    lb.TextColor3 = C.txt
+    lb.Font = Enum.Font.Gotham
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
+    local holder = Instance.new("Frame", h)
+    holder.Size = UDim2.new(1,-24,0,22)
+    holder.Position = UDim2.new(0,12,0,28)
+    holder.BackgroundTransparency = 1
+    local hl = Instance.new("UIListLayout", holder)
+    hl.FillDirection = Enum.FillDirection.Horizontal
+    hl.Padding = UDim.new(0,6)
+    hl.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local btns = {}
+    local function setActive(name)
+        for n, b in pairs(btns) do
+            b.BackgroundColor3 = (n == name) and C.on or Color3.fromRGB(32,32,38)
+            b.TextColor3 = (n == name) and C.txt or C.dim
+        end
+    end
+
+    for i, name in ipairs(opts) do
+        local b = Instance.new("TextButton", holder)
+        b.Size = UDim2.new(0,66,1,0)
+        b.BackgroundColor3 = (name == def) and C.on or Color3.fromRGB(32,32,38)
+        b.Text = name
+        b.TextColor3 = (name == def) and C.txt or C.dim
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 11
+        b.AutoButtonColor = false
+        b.LayoutOrder = i
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,5)
+        b.MouseButton1Click:Connect(function()
+            setActive(name)
+            cb(name)
+        end)
+        btns[name] = b
+    end
+end
+
+local function sc(p)
+    local s = Instance.new("ScrollingFrame", p)
+    s.Size = UDim2.new(1,-8,1,-60)
+    s.Position = UDim2.new(0,4,0,56)
+    s.BackgroundTransparency = 1
+    s.BorderSizePixel = 0
+    s.ScrollBarThickness = 3
+    s.ScrollBarImageColor3 = C.accent
+    s.CanvasSize = UDim2.new(0,0,0,0)
+    s.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local l = Instance.new("UIListLayout", s)
+    l.Padding = UDim.new(0,6)
+    l.SortOrder = Enum.SortOrder.LayoutOrder
+    return s
+end
+
+local CombatP  = page("Combat")
+local ExploitP = page("Exploits")
+local VisualP  = page("Visuals")
+local ColorP   = page("Colors")
+local ConfigP  = page("Config")
+
+local CombatS  = sc(CombatP)
+local ExploitS = sc(ExploitP)
+local VisualS  = sc(VisualP)
+local ColorS   = sc(ColorP)
+
+cat("⚔", "Combat", 1)
+cat("⚡", "Exploits", 2)
+cat("👁", "Visuals", 3)
+cat("🎨", "Colors", 4)
+cat("⚙", "Config", 5)
 
 local applyRapid, setFly
 local isVisible, target
 
--- ESP
+tog(CombatS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
+row(CombatS, "Aim Part", {"Head","Neck","Body"}, cfg.aimPart, 2, function(v) cfg.aimPart = v end)
+sld(CombatS, "Regular FOV", 30, 600, cfg.fov, 3, function(v) cfg.fov = v end)
+sld(CombatS, "Smooth", 1, 100, cfg.smooth, 4, function(v) cfg.smooth = v end)
+tog(CombatS, "Aim Visible", cfg.aimVisible, 5, function(v) cfg.aimVisible=v end)
+tog(CombatS, "Silent Aim", cfg.silent, 6, function(v) cfg.silent=v end)
+tog(CombatS, "Triggerbot", cfg.trigger, 7, function(v) cfg.trigger=v end)
+tog(CombatS, "FOV Circle", cfg.fovCircle, 8, function(v) cfg.fovCircle=v end)
+
+tog(ExploitS, "Fly [WASD+Space]", cfg.fly, 1, function(v) cfg.fly=v; if setFly then setFly(v) end end)
+sld(ExploitS, "Fly Speed", 10, 300, cfg.spd, 2, function(v) cfg.spd = v end)
+tog(ExploitS, "Speed", cfg.speed, 3, function(v) cfg.speed=v end)
+sld(ExploitS, "Speed Value", 0, 30, cfg.speedVal, 4, function(v) cfg.speedVal = v end)
+tog(ExploitS, "Godmode", cfg.god, 5, function(v) cfg.god=v end)
+tog(ExploitS, "TP to Enemy", false, 6, function(v)
+    if v then
+        local t = target and target()
+        if t then
+            local c = LP.Character
+            local hr = c and c:FindFirstChild("HumanoidRootPart")
+            if hr then hr.CFrame = CFrame.new(t.Position + Vector3.new(0, 3, 0)) end
+        end
+        task.delay(0.3, function() cfg.tpEnemy = false end)
+    end
+    cfg.tpEnemy = false
+end)
+tog(ExploitS, "Rapid Fire", false, 7, function(v) if applyRapid then applyRapid(v) end end)
+tog(ExploitS, "Rejoin", false, 8, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
+
+tog(VisualS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
+tog(VisualS, "Box", cfg.box, 2, function(v) cfg.box=v end)
+tog(VisualS, "Skeleton", cfg.skel, 3, function(v) cfg.skel=v end)
+tog(VisualS, "Name", cfg.name, 4, function(v) cfg.name=v end)
+tog(VisualS, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
+tog(VisualS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
+
+local themeNames = {}
+for i, t in ipairs(THEMES) do themeNames[i] = t.name end
+row(ColorS, "Theme", themeNames, THEMES[1].name, 1, function(v)
+    for i, t in ipairs(THEMES) do
+        if t.name == v then
+            for k,val in pairs(t) do if k ~= "name" then C[k] = val end end
+            Main.BackgroundColor3 = C.bg
+            Sidebar.BackgroundColor3 = C.panel
+            Float.BackgroundColor3 = C.panel
+            Float.TextColor3 = C.accent
+            LogoLabel.TextColor3 = C.accent
+            fs.Color = C.accent
+            ms.Color = C.on
+            break
+        end
+    end
+end)
+
+local exitBtn = Instance.new("TextButton", ConfigP)
+exitBtn.Size = UDim2.new(1,-36,0,40)
+exitBtn.Position = UDim2.new(0,18,0,64)
+exitBtn.BackgroundColor3 = Color3.fromRGB(140,45,45)
+exitBtn.Text = "Exit"
+exitBtn.TextColor3 = Color3.fromRGB(240,220,220)
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.TextSize = 13
+exitBtn.AutoButtonColor = false
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
+exitBtn.MouseButton1Click:Connect(function()
+    Float.Visible = false
+    Main.Visible = false
+end)
+
+sel("Combat")
+
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
 
@@ -125,7 +507,9 @@ local function clearCache(p)
     if d.name then pcall(function() d.name:Remove() end) end
     if d.hp then pcall(function() d.hp:Remove() end) end
     if d.dist then pcall(function() d.dist:Remove() end) end
-    if d.skel then for _, l in pairs(d.skel) do pcall(function() l:Remove() end) end end
+    if d.skel then
+        for _, l in pairs(d.skel) do pcall(function() l:Remove() end) end
+    end
 end
 
 local function mkESP(p)
@@ -139,7 +523,10 @@ local function mkESP(p)
     d.dist = Drawing.new("Text"); d.dist.Size=12; d.dist.Center=true; d.dist.Outline=true; d.dist.Visible=false
     d.skel = {}
     for i = 1, 20 do
-        local l = Drawing.new("Line"); l.Thickness=1; l.Color=Color3.fromRGB(230,230,235); l.Visible=false
+        local l = Drawing.new("Line")
+        l.Thickness = 1
+        l.Color = Color3.fromRGB(230,230,235)
+        l.Visible = false
         d.skel[i] = l
     end
     Cache[p] = d
@@ -147,7 +534,9 @@ end
 
 for _, p in ipairs(Players:GetPlayers()) do mkESP(p) end
 Players.PlayerAdded:Connect(mkESP)
-Players.PlayerRemoving:Connect(function(p) clearCache(p) end)
+Players.PlayerRemoving:Connect(function(p)
+    clearCache(p)
+end)
 
 local Fov
 if hasDrawing then
@@ -244,9 +633,17 @@ RunService.RenderStepped:Connect(function()
                                 e.dist.Visible = true
                             end
                         else e.dist.Visible = false end
-                        if cfg.skel then drawSkel(c, e) else for _, l in pairs(e.skel) do l.Visible=false end end
-                    else hide(e) end
-                else hide(e) end
+                        if cfg.skel then
+                            drawSkel(c, e)
+                        else
+                            for _, l in pairs(e.skel) do l.Visible=false end
+                        end
+                    else
+                        hide(e)
+                    end
+                else
+                    hide(e)
+                end
             end
         end
     end
@@ -266,24 +663,48 @@ isVisible = function(targetPart)
 end
 
 local function sameTeam(p)
-    if LP.Team ~= nil and p.Team ~= nil then return LP.Team == p.Team end
-    if LP.TeamColor ~= nil and p.TeamColor ~= nil and LP.TeamColor == p.TeamColor then return true end
-    local lpA, pA = LP:GetAttribute("Team"), p:GetAttribute("Team")
-    if lpA ~= nil and pA ~= nil then return lpA == pA end
-    local lc, pc = LP.Character, p.Character
-    if lc and pc then
-        local lv, pv = lc:FindFirstChild("Team"), pc:FindFirstChild("Team")
-        if lv and pv and lv:IsA("StringValue") and pv:IsA("StringValue") then return lv.Value == pv.Value end
+    if LP.Team ~= nil and p.Team ~= nil then
+        return LP.Team == p.Team
     end
-    local lpP, ppP = LP:FindFirstChild("Team"), p:FindFirstChild("Team")
-    if lpP and ppP and lpP:IsA("StringValue") and ppP:IsA("StringValue") then return lpP.Value == ppP.Value end
+    if LP.TeamColor ~= nil and p.TeamColor ~= nil then
+        if LP.TeamColor == p.TeamColor then return true end
+    end
+    local lpA = LP:GetAttribute("Team")
+    local pA  = p:GetAttribute("Team")
+    if lpA ~= nil and pA ~= nil then
+        return lpA == pA
+    end
+    local lc = LP.Character
+    local pc = p.Character
+    if lc and pc then
+        local lv = lc:FindFirstChild("Team")
+        local pv = pc:FindFirstChild("Team")
+        if lv and pv and lv:IsA("StringValue") and pv:IsA("StringValue") then
+            return lv.Value == pv.Value
+        end
+    end
+    local lpP = LP:FindFirstChild("Team")
+    local ppP = p:FindFirstChild("Team")
+    if lpP and ppP and lpP:IsA("StringValue") and ppP:IsA("StringValue") then
+        return lpP.Value == ppP.Value
+    end
     return false
 end
 
 local function aimPoint(c)
-    if cfg.aimPart == "Head" then return c:FindFirstChild("Head")
-    elseif cfg.aimPart == "Neck" then return c:FindFirstChild("Neck") or c:FindFirstChild("UpperTorso") or c:FindFirstChild("Torso") or c:FindFirstChild("Head")
-    else return c:FindFirstChild("UpperTorso") or c:FindFirstChild("Torso") or c:FindFirstChild("LowerTorso") or c:FindFirstChild("Head") end
+    if cfg.aimPart == "Head" then
+        return c:FindFirstChild("Head")
+    elseif cfg.aimPart == "Neck" then
+        return c:FindFirstChild("Neck")
+            or c:FindFirstChild("UpperTorso")
+            or c:FindFirstChild("Torso")
+            or c:FindFirstChild("Head")
+    else
+        return c:FindFirstChild("UpperTorso")
+            or c:FindFirstChild("Torso")
+            or c:FindFirstChild("LowerTorso")
+            or c:FindFirstChild("Head")
+    end
 end
 
 target = function()
@@ -299,7 +720,12 @@ target = function()
                     local sp, on = Camera:WorldToViewportPoint(part.Position)
                     if on then
                         local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-                        if d < bd and isVisible(part) then bd = d; best = part end
+                        if d < bd then
+                            if isVisible(part) then
+                                bd = d
+                                best = part
+                            end
+                        end
                     end
                 end
             end
@@ -328,14 +754,19 @@ do
                 if cfg.silent and not checkcaller() then
                     if self == LP:GetMouse() then
                         if method == "get_Hit" or method == "Hit" then
-                            local t = target(); if t then return CFrame.new(t.Position) end
+                            local t = target()
+                            if t then return CFrame.new(t.Position) end
                         elseif method == "get_Target" or method == "Target" then
-                            local t = target(); if t then return t end
+                            local t = target()
+                            if t then return t end
                         end
                     elseif self == Camera then
                         if method == "ViewportPointToRay" or method == "ScreenPointToRay" then
                             local t = target()
-                            if t then return oldNamecall(self, Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)) end
+                            if t then
+                                local vp = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+                                return oldNamecall(self, vp)
+                            end
                         end
                     end
                 end
@@ -392,7 +823,9 @@ local function applyGod()
     end
 end
 
-RunService.Heartbeat:Connect(function() if cfg.god then applyGod() end end)
+RunService.Heartbeat:Connect(function()
+    if cfg.god then applyGod() end
+end)
 
 function setFly(s)
     local c = LP.Character
@@ -438,7 +871,11 @@ local function applySpeed()
         hm:SetAttribute("EvilBaseSpeed", hm.WalkSpeed)
     end
     local base = hm:GetAttribute("EvilBaseSpeed") or 16
-    if cfg.speed then hm.WalkSpeed = base + cfg.speedVal else hm.WalkSpeed = base end
+    if cfg.speed then
+        hm.WalkSpeed = base + cfg.speedVal
+    else
+        hm.WalkSpeed = base
+    end
 end
 
 RunService.Heartbeat:Connect(function()
