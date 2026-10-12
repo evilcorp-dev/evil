@@ -178,7 +178,7 @@ local function cat(n,o)
     CB[n] = b
 end
 
-local function tog(p, label, def, cb)
+local function tog(p, label, def, order, cb)
     local b = Instance.new("TextButton", p)
     b.Size = UDim2.new(1,-16,0,34)
     b.BackgroundColor3 = def and C.on or C.card
@@ -188,6 +188,7 @@ local function tog(p, label, def, cb)
     b.TextSize = 13
     b.TextXAlignment = Enum.TextXAlignment.Left
     b.AutoButtonColor = false
+    b.LayoutOrder = order or 0
     Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
     local s = def
     b.MouseButton1Click:Connect(function()
@@ -197,10 +198,11 @@ local function tog(p, label, def, cb)
     end)
 end
 
-local function sld(p, label, mn, mx, def, cb)
+local function sld(p, label, mn, mx, def, order, cb)
     local h = Instance.new("Frame", p)
     h.Size = UDim2.new(1,-16,0,46)
     h.BackgroundColor3 = C.card
+    h.LayoutOrder = order or 0
     Instance.new("UICorner", h).CornerRadius = UDim.new(0,8)
 
     local lb = Instance.new("TextLabel", h)
@@ -265,6 +267,7 @@ local function sc(p)
     s.AutomaticCanvasSize = Enum.AutomaticSize.Y
     local l = Instance.new("UIListLayout", s)
     l.Padding = UDim.new(0,6)
+    l.SortOrder = Enum.SortOrder.LayoutOrder
     return s
 end
 
@@ -282,26 +285,26 @@ cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
 
 local applyRapid, setFly
 
-tog(AS, "Aimbot", cfg.aim, function(v) cfg.aim=v end)
-sld(AS, "Regular FOV", 30, 600, cfg.fov, function(v) cfg.fov = v end)
-sld(AS, "Smooth", 1, 100, cfg.smooth, function(v) cfg.smooth = v end)
-tog(AS, "Aim Visible", cfg.aimVisible, function(v) cfg.aimVisible=v end)
-tog(AS, "Silent Aim", cfg.silent, function(v) cfg.silent=v end)
-tog(AS, "Triggerbot", cfg.trigger, function(v) cfg.trigger=v end)
-tog(AS, "FOV Circle", cfg.fovCircle, function(v) cfg.fovCircle=v end)
+tog(AS, "Aimbot", cfg.aim, 1, function(v) cfg.aim=v end)
+sld(AS, "Regular FOV", 30, 600, cfg.fov, 2, function(v) cfg.fov = v end)
+sld(AS, "Smooth", 1, 100, cfg.smooth, 3, function(v) cfg.smooth = v end)
+tog(AS, "Aim Visible", cfg.aimVisible, 4, function(v) cfg.aimVisible=v end)
+tog(AS, "Silent Aim", cfg.silent, 5, function(v) cfg.silent=v end)
+tog(AS, "Triggerbot", cfg.trigger, 6, function(v) cfg.trigger=v end)
+tog(AS, "FOV Circle", cfg.fovCircle, 7, function(v) cfg.fovCircle=v end)
 
-tog(VS, "ATIVAR ESP", cfg.esp, function(v) cfg.esp=v end)
-tog(VS, "Box", cfg.box, function(v) cfg.box=v end)
-tog(VS, "Skeleton", cfg.skel, function(v) cfg.skel=v end)
-tog(VS, "Name", cfg.name, function(v) cfg.name=v end)
-tog(VS, "Health", cfg.hp, function(v) cfg.hp=v end)
-tog(VS, "Distance", cfg.dist, function(v) cfg.dist=v end)
+tog(VS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
+tog(VS, "Box", cfg.box, 2, function(v) cfg.box=v end)
+tog(VS, "Skeleton", cfg.skel, 3, function(v) cfg.skel=v end)
+tog(VS, "Name", cfg.name, 4, function(v) cfg.name=v end)
+tog(VS, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
+tog(VS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
 
-tog(PS, "Godmode", cfg.god, function(v) cfg.god=v end)
-tog(PS, "Fly [WASD+Space]", cfg.fly, function(v) cfg.fly=v; if setFly then setFly(v) end end)
+tog(PS, "Godmode", cfg.god, 1, function(v) cfg.god=v end)
+tog(PS, "Fly [WASD+Space]", cfg.fly, 2, function(v) cfg.fly=v; if setFly then setFly(v) end end)
 
-tog(MS, "Rapid Fire", false, function(v) if applyRapid then applyRapid(v) end end)
-tog(MS, "Rejoin", false, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
+tog(MS, "Rapid Fire", false, 1, function(v) if applyRapid then applyRapid(v) end end)
+tog(MS, "Rejoin", false, 2, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
 
 sel("AIM")
 
