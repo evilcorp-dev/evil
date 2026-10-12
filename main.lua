@@ -729,4 +729,24 @@ end)
 local function applySpeed()
     local c = LP.Character
     if not c then return end
-    local hm = c:Find
+    local hm = c:FindFirstChildOfClass("Humanoid")
+    if not hm then return end
+    if not hm:GetAttribute("EvilBaseSpeed") then
+        hm:SetAttribute("EvilBaseSpeed", hm.WalkSpeed)
+    end
+    local base = hm:GetAttribute("EvilBaseSpeed") or 16
+    if cfg.speed then
+        hm.WalkSpeed = base + cfg.speedVal
+    else
+        hm.WalkSpeed = base
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.speed or cfg.speedVal > 0 then applySpeed() end
+end)
+
+LP.CharacterAdded:Connect(function()
+    if cfg.fly then setFly(true) end
+    if cfg.god then applyGod() end
+end)
