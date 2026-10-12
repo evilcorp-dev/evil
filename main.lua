@@ -55,7 +55,6 @@ local fs = Instance.new("UIStroke", Float)
 fs.Color = C.accent
 fs.Thickness = 1.5
 
--- BOTÃO LIMPAR LOGS AO LADO DO FLOAT (SEMPRE VISÍVEL)
 local ClearFloat = Instance.new("TextButton")
 ClearFloat.Size = UDim2.new(0,58,0,28)
 ClearFloat.Position = UDim2.new(0,30,0,190)
@@ -517,6 +516,7 @@ Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
 exitBtn.MouseButton1Click:Connect(function()
     Float.Visible = false
     Main.Visible = false
+    ClearFloat.Visible = false
 end)
 
 local clearBtn = Instance.new("TextButton", ConfigP)
