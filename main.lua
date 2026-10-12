@@ -494,6 +494,23 @@ exitBtn.MouseButton1Click:Connect(function()
     Main.Visible = false
 end)
 
+local clearBtn = Instance.new("TextButton", ConfigP)
+clearBtn.Size = UDim2.new(1,-36,0,40)
+clearBtn.Position = UDim2.new(0,18,0,112)
+clearBtn.BackgroundColor3 = Color3.fromRGB(50,50,60)
+clearBtn.Text = "LIMPAR LOGS"
+clearBtn.TextColor3 = C.txt
+clearBtn.Font = Enum.Font.GothamBold
+clearBtn.TextSize = 13
+clearBtn.AutoButtonColor = false
+Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0,6)
+clearBtn.MouseButton1Click:Connect(function()
+    pcall(function() if clearoutput then clearoutput() end end)
+    pcall(function() if rconsoleclear then rconsoleclear() end end)
+    pcall(function() if consoleclear then consoleclear() end end)
+    pcall(function() if clearconsole then clearconsole() end end)
+end)
+
 sel("Combat")
 
 local hasDrawing = pcall(function() return Drawing.new end)
@@ -658,8 +675,7 @@ isVisible = function(targetPart)
     params.FilterDescendantsInstances = { LP.Character, Camera }
     params.IgnoreWater = true
     local result = Workspace:Raycast(origin, dir, params)
-    if not result then return true end
-    return result.Instance == targetPart or result.Instance:IsDescendantOf(targetPart.Parent)
+    if not result then return true end    return result.Instance == targetPart or result.Instance:IsDescendantOf(targetPart.Parent)
 end
 
 local function sameTeam(p)
