@@ -441,7 +441,6 @@ local function hide(e)
     for _, l in pairs(e.skel) do l.Visible=false end
 end
 
--- skeleton compatível com R6 e R15
 local SKEL_R15 = {
     {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
     {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
@@ -630,7 +629,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- SILENT AIM: hook em Mouse.Hit, Mouse.Target e nas funções de ray da Camera
 do
     if hookmetamethod and getrawmetatable and checkcaller and newcclosure then
         pcall(function()
@@ -652,12 +650,8 @@ do
                         if method == "ViewportPointToRay" or method == "ScreenPointToRay" then
                             local t = target()
                             if t then
-                                local args = {...}
-                                local vp = Vector2.new(
-                                    Camera.ViewportSize.X/2,
-                                    Camera.ViewportSize.Y/2
-                                )
-                                return oldNamecall(self, vp, unpack(args, 2))
+                                local vp = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+                                return oldNamecall(self, vp)
                             end
                         end
                     end
