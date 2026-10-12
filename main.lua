@@ -282,7 +282,7 @@ cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
 
 local applyRapid, setFly
 
-tog(AS, "Aimbot (sempre ativo)", cfg.aim, function(v) cfg.aim=v end)
+tog(AS, "Aimbot", cfg.aim, function(v) cfg.aim=v end)
 sld(AS, "Regular FOV", 30, 600, cfg.fov, function(v) cfg.fov = v end)
 sld(AS, "Smooth", 1, 100, cfg.smooth, function(v) cfg.smooth = v end)
 tog(AS, "Aim Visible", cfg.aimVisible, function(v) cfg.aimVisible=v end)
@@ -290,7 +290,7 @@ tog(AS, "Silent Aim", cfg.silent, function(v) cfg.silent=v end)
 tog(AS, "Triggerbot", cfg.trigger, function(v) cfg.trigger=v end)
 tog(AS, "FOV Circle", cfg.fovCircle, function(v) cfg.fovCircle=v end)
 
-tog(VS, "ESP", cfg.esp, function(v) cfg.esp=v end)
+tog(VS, "ATIVAR ESP", cfg.esp, function(v) cfg.esp=v end)
 tog(VS, "Box", cfg.box, function(v) cfg.box=v end)
 tog(VS, "Skeleton", cfg.skel, function(v) cfg.skel=v end)
 tog(VS, "Name", cfg.name, function(v) cfg.name=v end)
@@ -441,8 +441,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Checagem de visibilidade: raycast da câmera até o alvo.
--- Retorna true se o primeiro obstáculo for a própria cabeça do alvo.
 local function isVisible(targetPart)
     if not cfg.aimVisible then return true end
     local origin = Camera.CFrame.Position
