@@ -6,6 +6,8 @@ local TPS         = game:GetService("TeleportService")
 local LP          = Players.LocalPlayer
 local Camera      = Workspace.CurrentCamera
 
+local EVIL_IMG = "rbxassetid://0"
+
 local cfg = {
     esp=false, box=true, skel=true, name=true, hp=true, dist=true,
     aim=false, aimKey=Enum.KeyCode.E, silent=false, trigger=false,
@@ -105,9 +107,34 @@ Sidebar.BackgroundColor3 = C.panel
 Sidebar.BorderSizePixel = 0
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,12)
 
+local LogoBox = Instance.new("Frame", Sidebar)
+LogoBox.Size = UDim2.new(0,78,0,78)
+LogoBox.Position = UDim2.new(0.5,-39,0,14)
+LogoBox.BackgroundColor3 = C.card
+LogoBox.BorderSizePixel = 0
+Instance.new("UICorner", LogoBox).CornerRadius = UDim.new(1,0)
+
+if EVIL_IMG and EVIL_IMG ~= "rbxassetid://0" then
+    local img = Instance.new("ImageLabel", LogoBox)
+    img.Size = UDim2.new(1,-14,1,-14)
+    img.Position = UDim2.new(0,7,0,7)
+    img.BackgroundTransparency = 1
+    img.Image = EVIL_IMG
+    img.ScaleType = Enum.ScaleType.Fit
+    img.ImageColor3 = C.txt
+else
+    local ll = Instance.new("TextLabel", LogoBox)
+    ll.Size = UDim2.new(1,0,1,0)
+    ll.BackgroundTransparency = 1
+    ll.Text = "evil"
+    ll.TextColor3 = C.txt
+    ll.Font = Enum.Font.GothamBold
+    ll.TextSize = 22
+end
+
 local CatFrame = Instance.new("Frame", Sidebar)
-CatFrame.Size = UDim2.new(1,-16,1,-24)
-CatFrame.Position = UDim2.new(0,8,0,12)
+CatFrame.Size = UDim2.new(1,-16,1,-120)
+CatFrame.Position = UDim2.new(0,8,0,105)
 CatFrame.BackgroundTransparency = 1
 local cl = Instance.new("UIListLayout", CatFrame)
 cl.Padding = UDim.new(0,4)
@@ -170,6 +197,63 @@ local function tog(p, label, def, cb)
     end)
 end
 
+local function sld(p, label, mn, mx, def, cb)
+    local h = Instance.new("Frame", p)
+    h.Size = UDim2.new(1,-16,0,46)
+    h.BackgroundColor3 = C.card
+    Instance.new("UICorner", h).CornerRadius = UDim.new(0,8)
+
+    local lb = Instance.new("TextLabel", h)
+    lb.Size = UDim2.new(1,-20,0,18)
+    lb.Position = UDim2.new(0,12,0,3)
+    lb.BackgroundTransparency = 1
+    lb.Text = label..": "..def
+    lb.TextColor3 = C.txt
+    lb.Font = Enum.Font.Gotham
+    lb.TextSize = 12
+    lb.TextXAlignment = Enum.TextXAlignment.Left
+
+    local bar = Instance.new("Frame", h)
+    bar.Size = UDim2.new(1,-24,0,6)
+    bar.Position = UDim2.new(0,12,0,30)
+    bar.BackgroundColor3 = Color3.fromRGB(42,42,48)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((def-mn)/(mx-mn),0,1,0)
+    fill.BackgroundColor3 = C.dim
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+    local knob = Instance.new("Frame", bar)
+    knob.Size = UDim2.new(0,12,0,12)
+    knob.Position = UDim2.new((def-mn)/(mx-mn),-6,0.5,-6)
+    knob.BackgroundColor3 = C.txt
+    knob.BorderSizePixel = 0
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+    knob.ZIndex = 2
+
+    local dr = false
+    local function upd(i)
+        local pr = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local v = math.floor(mn + (mx-mn)*pr)
+        fill.Size = UDim2.new(pr,0,1,0)
+        knob.Position = UDim2.new(pr,-6,0.5,-6)
+        lb.Text = label..": "..v
+        cb(v)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dr = true; upd(i)
+        end
+    end)
+    bar.InputChanged:Connect(function(i)
+        if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end
+    end)
+end
+
 local function sc(p)
     local s = Instance.new("ScrollingFrame", p)
     s.Size = UDim2.new(1,-16,1,-16)
@@ -199,6 +283,7 @@ cat("AIM",1) cat("VISUALS",2) cat("MISC",3) cat("PLAYER",4)
 local applyRapid, setFly
 
 tog(AS, "Aimbot [E]", cfg.aim, function(v) cfg.aim=v end)
+sld(AS, "Regular FOV", 30, 600, cfg.fov, function(v) cfg.fov = v end)
 tog(AS, "Silent Aim", cfg.silent, function(v) cfg.silent=v end)
 tog(AS, "Triggerbot", cfg.trigger, function(v) cfg.trigger=v end)
 tog(AS, "FOV Circle", cfg.fovCircle, function(v) cfg.fovCircle=v end)
@@ -221,9 +306,23 @@ sel("AIM")
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
 
+local function clearCache(p)
+    local d = Cache[p]
+    if not d then return end
+    Cache[p] = nil
+    if d.box then pcall(function() d.box:Remove() end) end
+    if d.name then pcall(function() d.name:Remove() end) end
+    if d.hp then pcall(function() d.hp:Remove() end) end
+    if d.dist then pcall(function() d.dist:Remove() end) end
+    if d.skel then
+        for _, l in pairs(d.skel) do pcall(function() l:Remove() end) end
+    end
+end
+
 local function mkESP(p)
     if p == LP or not hasDrawing then return end
     if Cache[p] then return end
+    if not p.Parent then return end
     local d = {}
     d.box  = Drawing.new("Square"); d.box.Thickness=1; d.box.Filled=false; d.box.Visible=false
     d.name = Drawing.new("Text"); d.name.Size=14; d.name.Center=true; d.name.Outline=true; d.name.Visible=false
@@ -240,14 +339,7 @@ end
 for _, p in ipairs(Players:GetPlayers()) do mkESP(p) end
 Players.PlayerAdded:Connect(mkESP)
 Players.PlayerRemoving:Connect(function(p)
-    if Cache[p] then
-        for _, o in pairs(Cache[p]) do
-            if typeof(o)=="table" then
-                for _, l in pairs(o) do pcall(function() l:Remove() end) end
-            else pcall(function() o:Remove() end) end
-        end
-        Cache[p]=nil
-    end
+    clearCache(p)
 end)
 
 local Fov
@@ -274,62 +366,77 @@ RunService.RenderStepped:Connect(function()
         Fov.Visible = cfg.fovCircle
     end
     for p, e in pairs(Cache) do
-        local c = p.Character
-        local hr = c and c:FindFirstChild("HumanoidRootPart")
-        local hd = c and c:FindFirstChild("Head")
-        local hm = c and c:FindFirstChildOfClass("Humanoid")
-        if not cfg.esp or not c or not hr or not hd or not hm or hm.Health<=0 then
+        -- checagens anti-fantasma
+        if not p or not p.Parent or p == LP then
             hide(e)
+            task.spawn(function() clearCache(p) end)
         else
-            local ok, cf, size = pcall(function() return c:GetBoundingBox() end)
-            if ok then
-                local p0 = w2v(cf.Position - size/2)
-                local p1 = w2v(cf.Position + size/2)
-                local x,y = math.min(p0.X,p1.X), math.min(p0.Y,p1.Y)
-                local w,h = math.abs(p1.X-p0.X), math.abs(p1.Y-p0.Y)
-                e.box.Size = Vector2.new(w,h)
-                e.box.Position = Vector2.new(x,y)
-                e.box.Color = Color3.fromRGB(230,230,235)
-                e.box.Visible = cfg.box
-                e.name.Text = p.Name
-                e.name.Position = Vector2.new(x+w/2, y-18)
-                e.name.Color = Color3.fromRGB(255,255,255)
-                e.name.Visible = cfg.name
-                local hpr = hm.Health / math.max(hm.MaxHealth,1)
-                e.hp.From = Vector2.new(x-6, y+h)
-                e.hp.To   = Vector2.new(x-6, y+h-h*hpr)
-                e.hp.Visible = cfg.hp
-                if cfg.dist then
-                    local mr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                    if mr then
-                        e.dist.Text = "["..math.floor((mr.Position-hr.Position).Magnitude).."]"
-                        e.dist.Position = Vector2.new(x+w/2, y+h+4)
-                        e.dist.Color = Color3.fromRGB(255,255,255)
-                        e.dist.Visible = true
-                    end
-                else e.dist.Visible = false end
-                if cfg.skel then
-                    local pairs_ = {
-                        {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-                        {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-                        {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-                        {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-                        {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-                    }
-                    for _, pr in ipairs(pairs_) do
-                        local a = c:FindFirstChild(pr[1])
-                        local b = c:FindFirstChild(pr[2])
-                        local l = e.skel[pr[1]]
-                        if a and b and l then
-                            l.From = w2v(a.Position)
-                            l.To   = w2v(b.Position)
-                            l.Visible = true
+            local c = p.Character
+            local hr = c and c:FindFirstChild("HumanoidRootPart")
+            local hd = c and c:FindFirstChild("Head")
+            local hm = c and c:FindFirstChildOfClass("Humanoid")
+            local valid = c and hr and hr.Parent and hd and hd.Parent and hm and hm.Parent and hm.Health > 0
+            if not cfg.esp or not valid then
+                hide(e)
+                if not p.Parent then task.spawn(function() clearCache(p) end) end
+            else
+                local ok, cf, size = pcall(function() return c:GetBoundingBox() end)
+                if ok then
+                    local p0 = w2v(cf.Position - size/2)
+                    local p1 = w2v(cf.Position + size/2)
+                    local x,y = math.min(p0.X,p1.X), math.min(p0.Y,p1.Y)
+                    local w,h = math.abs(p1.X-p0.X), math.abs(p1.Y-p0.Y)
+                    -- descarta caixas absurdas (fantasma ou personagem destruído)
+                    if w > 0 and h > 0 and w < 2000 and h < 2000 then
+                        e.box.Size = Vector2.new(w,h)
+                        e.box.Position = Vector2.new(x,y)
+                        e.box.Color = Color3.fromRGB(230,230,235)
+                        e.box.Visible = cfg.box
+                        e.name.Text = p.Name
+                        e.name.Position = Vector2.new(x+w/2, y-18)
+                        e.name.Color = Color3.fromRGB(255,255,255)
+                        e.name.Visible = cfg.name
+                        local hpr = hm.Health / math.max(hm.MaxHealth,1)
+                        e.hp.From = Vector2.new(x-6, y+h)
+                        e.hp.To   = Vector2.new(x-6, y+h-h*hpr)
+                        e.hp.Visible = cfg.hp
+                        if cfg.dist then
+                            local mr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                            if mr and mr.Parent then
+                                e.dist.Text = "["..math.floor((mr.Position-hr.Position).Magnitude).."]"
+                                e.dist.Position = Vector2.new(x+w/2, y+h+4)
+                                e.dist.Color = Color3.fromRGB(255,255,255)
+                                e.dist.Visible = true
+                            end
+                        else e.dist.Visible = false end
+                        if cfg.skel then
+                            local pairs_ = {
+                                {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+                                {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+                                {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+                                {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+                                {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+                            }
+                            for _, pr in ipairs(pairs_) do
+                                local a = c:FindFirstChild(pr[1])
+                                local b = c:FindFirstChild(pr[2])
+                                local l = e.skel[pr[1]]
+                                if a and b and l then
+                                    l.From = w2v(a.Position)
+                                    l.To   = w2v(b.Position)
+                                    l.Visible = true
+                                end
+                            end
+                        else
+                            for _, l in pairs(e.skel) do l.Visible=false end
                         end
+                    else
+                        hide(e)
                     end
                 else
-                    for _, l in pairs(e.skel) do l.Visible=false end
+                    hide(e)
                 end
-            else hide(e) end
+            end
         end
     end
 end)
@@ -338,11 +445,11 @@ local function target()
     local best, bd = nil, cfg.fov
     local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP then
+        if p ~= LP and p.Parent then
             local c = p.Character
             local hd = c and c:FindFirstChild("Head")
             local hm = c and c:FindFirstChildOfClass("Humanoid")
-            if hd and hm and hm.Health>0 then
+            if hd and hd.Parent and hm and hm.Parent and hm.Health>0 then
                 local sp, on = Camera:WorldToViewportPoint(hd.Position)
                 if on then
                     local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
