@@ -6,8 +6,6 @@ local TPS         = game:GetService("TeleportService")
 local LP          = Players.LocalPlayer
 local Camera      = Workspace.CurrentCamera
 
-local EVIL_IMG = "rbxassetid://0"
-
 local cfg = {
     esp=false, box=true, skel=true, name=true, hp=true, dist=true,
     aim=false, aimPart="Head", silent=false, trigger=false, aimVisible=false,
@@ -18,12 +16,12 @@ local cfg = {
 }
 
 local THEMES = {
-    { name="Preto",  bg=Color3.fromRGB(11,11,13), panel=Color3.fromRGB(15,15,18), card=Color3.fromRGB(22,22,26), on=Color3.fromRGB(48,48,56), txt=Color3.fromRGB(228,228,234), dim=Color3.fromRGB(130,130,140), accent=Color3.fromRGB(220,40,40) },
-    { name="Verde",  bg=Color3.fromRGB(9,15,11), panel=Color3.fromRGB(12,22,15), card=Color3.fromRGB(18,32,22), on=Color3.fromRGB(40,110,65), txt=Color3.fromRGB(220,240,225), dim=Color3.fromRGB(130,180,145), accent=Color3.fromRGB(80,220,120) },
-    { name="Branco", bg=Color3.fromRGB(225,225,230), panel=Color3.fromRGB(238,238,242), card=Color3.fromRGB(250,250,252), on=Color3.fromRGB(175,175,185), txt=Color3.fromRGB(18,18,22), dim=Color3.fromRGB(90,90,100), accent=Color3.fromRGB(210,40,40) },
-    { name="Roxo",   bg=Color3.fromRGB(14,9,22), panel=Color3.fromRGB(20,12,32), card=Color3.fromRGB(28,16,44), on=Color3.fromRGB(85,50,140), txt=Color3.fromRGB(230,220,240), dim=Color3.fromRGB(150,130,180), accent=Color3.fromRGB(180,90,230) },
-    { name="Vermelho", bg=Color3.fromRGB(18,9,9), panel=Color3.fromRGB(28,12,12), card=Color3.fromRGB(40,16,16), on=Color3.fromRGB(130,40,40), txt=Color3.fromRGB(240,220,220), dim=Color3.fromRGB(180,130,130), accent=Color3.fromRGB(230,60,60) },
-    { name="Azul",   bg=Color3.fromRGB(9,13,20), panel=Color3.fromRGB(12,18,30), card=Color3.fromRGB(16,26,42), on=Color3.fromRGB(40,80,140), txt=Color3.fromRGB(220,228,240), dim=Color3.fromRGB(130,150,190), accent=Color3.fromRGB(70,150,230) },
+    { name="Preto",    bg=Color3.fromRGB(11,11,13), panel=Color3.fromRGB(15,15,18), card=Color3.fromRGB(22,22,26), on=Color3.fromRGB(48,48,56),  txt=Color3.fromRGB(228,228,234), dim=Color3.fromRGB(130,130,140), accent=Color3.fromRGB(220,40,40) },
+    { name="Verde",    bg=Color3.fromRGB(9,15,11),  panel=Color3.fromRGB(12,22,15), card=Color3.fromRGB(18,32,22), on=Color3.fromRGB(40,110,65), txt=Color3.fromRGB(220,240,225), dim=Color3.fromRGB(130,180,145), accent=Color3.fromRGB(80,220,120) },
+    { name="Branco",   bg=Color3.fromRGB(225,225,230), panel=Color3.fromRGB(238,238,242), card=Color3.fromRGB(250,250,252), on=Color3.fromRGB(175,175,185), txt=Color3.fromRGB(18,18,22), dim=Color3.fromRGB(90,90,100), accent=Color3.fromRGB(210,40,40) },
+    { name="Roxo",     bg=Color3.fromRGB(14,9,22),  panel=Color3.fromRGB(20,12,32), card=Color3.fromRGB(28,16,44), on=Color3.fromRGB(85,50,140), txt=Color3.fromRGB(230,220,240), dim=Color3.fromRGB(150,130,180), accent=Color3.fromRGB(180,90,230) },
+    { name="Vermelho", bg=Color3.fromRGB(18,9,9),   panel=Color3.fromRGB(28,12,12), card=Color3.fromRGB(40,16,16), on=Color3.fromRGB(130,40,40), txt=Color3.fromRGB(240,220,220), dim=Color3.fromRGB(180,130,130), accent=Color3.fromRGB(230,60,60) },
+    { name="Azul",     bg=Color3.fromRGB(9,13,20),  panel=Color3.fromRGB(12,18,30), card=Color3.fromRGB(16,26,42), on=Color3.fromRGB(40,80,140), txt=Color3.fromRGB(220,228,240), dim=Color3.fromRGB(130,150,190), accent=Color3.fromRGB(70,150,230) },
 }
 
 local C = {}
@@ -47,7 +45,7 @@ Float.Size = UDim2.new(0,58,0,58)
 Float.Position = UDim2.new(0,30,0,120)
 Float.BackgroundColor3 = C.panel
 Float.Text = "evil"
-Float.TextColor3 = C.txt
+Float.TextColor3 = C.accent
 Float.Font = Enum.Font.GothamBold
 Float.TextSize = 15
 Float.AutoButtonColor = false
@@ -109,56 +107,43 @@ do
     end)
 end
 
--- SIDEBAR
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0,150,1,0)
+Sidebar.Size = UDim2.new(0,155,1,0)
 Sidebar.BackgroundColor3 = C.panel
 Sidebar.BorderSizePixel = 0
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,10)
 
 local LogoBox = Instance.new("Frame", Sidebar)
-LogoBox.Size = UDim2.new(0,76,0,76)
-LogoBox.Position = UDim2.new(0.5,-38,0,14)
-LogoBox.BackgroundColor3 = C.card
-LogoBox.BorderSizePixel = 0
-Instance.new("UICorner", LogoBox).CornerRadius = UDim.new(1,0)
+LogoBox.Size = UDim2.new(1,0,0,80)
+LogoBox.Position = UDim2.new(0,0,0,6)
+LogoBox.BackgroundTransparency = 1
 
-if EVIL_IMG and EVIL_IMG ~= "rbxassetid://0" then
-    local img = Instance.new("ImageLabel", LogoBox)
-    img.Size = UDim2.new(1,-14,1,-14)
-    img.Position = UDim2.new(0,7,0,7)
-    img.BackgroundTransparency = 1
-    img.Image = EVIL_IMG
-    img.ScaleType = Enum.ScaleType.Fit
-    img.ImageColor3 = C.txt
-else
-    local ll = Instance.new("TextLabel", LogoBox)
-    ll.Size = UDim2.new(1,0,1,0)
-    ll.BackgroundTransparency = 1
-    ll.Text = "evil"
-    ll.TextColor3 = C.accent
-    ll.Font = Enum.Font.GothamBold
-    ll.TextSize = 22
-end
+local LogoLabel = Instance.new("TextLabel", LogoBox)
+LogoLabel.Size = UDim2.new(1,0,1,0)
+LogoLabel.BackgroundTransparency = 1
+LogoLabel.Text = "Evil"
+LogoLabel.TextColor3 = C.accent
+LogoLabel.Font = Enum.Font.GothamBlack
+LogoLabel.TextSize = 34
+LogoLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local CatFrame = Instance.new("Frame", Sidebar)
-CatFrame.Size = UDim2.new(1,-16,1,-118)
-CatFrame.Position = UDim2.new(0,8,0,102)
+CatFrame.Size = UDim2.new(1,-16,1,-102)
+CatFrame.Position = UDim2.new(0,8,0,96)
 CatFrame.BackgroundTransparency = 1
 local cl = Instance.new("UIListLayout", CatFrame)
-cl.Padding = UDim.new(0,2)
+cl.Padding = UDim.new(0,3)
 cl.SortOrder = Enum.SortOrder.LayoutOrder
 
--- ÁREA DE CONTEÚDO
 local Pages = Instance.new("Frame", Main)
-Pages.Size = UDim2.new(1,-150,1,0)
-Pages.Position = UDim2.new(0,150,0,0)
+Pages.Size = UDim2.new(1,-155,1,0)
+Pages.Position = UDim2.new(0,155,0,0)
 Pages.BackgroundTransparency = 1
 Pages.ClipsDescendants = true
 
 local PM, CB = {}, {}
 
-local function page(n, title)
+local function page(n)
     local p = Instance.new("Frame", Pages)
     p.Size = UDim2.new(1,0,1,0)
     p.BackgroundTransparency = 1
@@ -167,10 +152,10 @@ local function page(n, title)
 
     local hdr = Instance.new("TextLabel", p)
     hdr.Name = "Header"
-    hdr.Size = UDim2.new(1,-24,0,26)
-    hdr.Position = UDim2.new(0,16,0,14)
+    hdr.Size = UDim2.new(1,-28,0,28)
+    hdr.Position = UDim2.new(0,20,0,16)
     hdr.BackgroundTransparency = 1
-    hdr.Text = string.upper(title or n)
+    hdr.Text = string.upper(n)
     hdr.TextColor3 = C.dim
     hdr.Font = Enum.Font.GothamBold
     hdr.TextSize = 11
@@ -178,8 +163,8 @@ local function page(n, title)
 
     local line = Instance.new("Frame", p)
     line.Name = "HeaderLine"
-    line.Size = UDim2.new(1,-24,0,1)
-    line.Position = UDim2.new(0,16,0,42)
+    line.Size = UDim2.new(1,-28,0,1)
+    line.Position = UDim2.new(0,20,0,46)
     line.BackgroundColor3 = C.on
     line.BorderSizePixel = 0
 
@@ -191,17 +176,12 @@ local function sel(n)
     for k,b in pairs(CB) do
         if k == n then
             b.BackgroundColor3 = C.on
-            b.TextColor3 = C.txt
-            if b:FindFirstChild("Indicator") then
-                b.Indicator.BackgroundColor3 = C.accent
-                b.Indicator.Visible = true
-            end
+            if b:FindFirstChild("Label") then b.Label.TextColor3 = C.txt end
+            if b:FindFirstChild("Indicator") then b.Indicator.Visible = true end
         else
             b.BackgroundColor3 = C.panel
-            b.TextColor3 = C.dim
-            if b:FindFirstChild("Indicator") then
-                b.Indicator.Visible = false
-            end
+            if b:FindFirstChild("Label") then b.Label.TextColor3 = C.dim end
+            if b:FindFirstChild("Indicator") then b.Indicator.Visible = false end
         end
     end
 end
@@ -230,9 +210,10 @@ local function cat(icon, n, o)
     ic.Text = icon
     ic.TextColor3 = C.txt
     ic.Font = Enum.Font.GothamBold
-    ic.TextSize = 14
+    ic.TextSize = 13
 
     local lb = Instance.new("TextLabel", b)
+    lb.Name = "Label"
     lb.Size = UDim2.new(1,-40,1,0)
     lb.Position = UDim2.new(0,36,0,0)
     lb.BackgroundTransparency = 1
@@ -244,15 +225,13 @@ local function cat(icon, n, o)
 
     b.MouseButton1Click:Connect(function() sel(n) end)
     CB[n] = b
-    b:SetAttribute("Label", lb.Name)
     return b
 end
 
--- COMPONENTES
 local function tog(p, label, def, order, cb)
     local b = Instance.new("TextButton", p)
-    b.Size = UDim2.new(1,-32,0,36)
-    b.Position = UDim2.new(0,16,0,0)
+    b.Size = UDim2.new(1,-36,0,38)
+    b.Position = UDim2.new(0,18,0,0)
     b.BackgroundColor3 = C.card
     b.Text = ""
     b.AutoButtonColor = false
@@ -269,15 +248,14 @@ local function tog(p, label, def, order, cb)
     l.TextSize = 13
     l.TextXAlignment = Enum.TextXAlignment.Left
 
-    local cb2 = Instance.new("Frame", b)
-    cb2.Name = "Check"
-    cb2.Size = UDim2.new(0,18,0,18)
-    cb2.Position = UDim2.new(1,-30,0.5,-9)
-    cb2.BackgroundColor3 = def and C.accent or Color3.fromRGB(32,32,38)
-    cb2.BorderSizePixel = 0
-    Instance.new("UICorner", cb2).CornerRadius = UDim.new(0,4)
+    local chk = Instance.new("Frame", b)
+    chk.Size = UDim2.new(0,18,0,18)
+    chk.Position = UDim2.new(1,-30,0.5,-9)
+    chk.BackgroundColor3 = def and C.accent or Color3.fromRGB(32,32,38)
+    chk.BorderSizePixel = 0
+    Instance.new("UICorner", chk).CornerRadius = UDim.new(0,4)
 
-    local check = Instance.new("TextLabel", cb2)
+    local check = Instance.new("TextLabel", chk)
     check.Size = UDim2.new(1,0,1,0)
     check.BackgroundTransparency = 1
     check.Text = "✓"
@@ -289,7 +267,7 @@ local function tog(p, label, def, order, cb)
     local s = def
     b.MouseButton1Click:Connect(function()
         s = not s
-        cb2.BackgroundColor3 = s and C.accent or Color3.fromRGB(32,32,38)
+        chk.BackgroundColor3 = s and C.accent or Color3.fromRGB(32,32,38)
         check.Visible = s
         cb(s)
     end)
@@ -297,8 +275,8 @@ end
 
 local function sld(p, label, mn, mx, def, order, cb)
     local h = Instance.new("Frame", p)
-    h.Size = UDim2.new(1,-32,0,48)
-    h.Position = UDim2.new(0,16,0,0)
+    h.Size = UDim2.new(1,-36,0,48)
+    h.Position = UDim2.new(0,18,0,0)
     h.BackgroundColor3 = C.card
     h.LayoutOrder = order or 0
     Instance.new("UICorner", h).CornerRadius = UDim.new(0,6)
@@ -359,8 +337,8 @@ end
 
 local function row(p, label, opts, def, order, cb)
     local h = Instance.new("Frame", p)
-    h.Size = UDim2.new(1,-32,0,54)
-    h.Position = UDim2.new(0,16,0,0)
+    h.Size = UDim2.new(1,-36,0,56)
+    h.Position = UDim2.new(0,18,0,0)
     h.BackgroundColor3 = C.card
     h.LayoutOrder = order or 0
     Instance.new("UICorner", h).CornerRadius = UDim.new(0,6)
@@ -377,7 +355,7 @@ local function row(p, label, opts, def, order, cb)
 
     local holder = Instance.new("Frame", h)
     holder.Size = UDim2.new(1,-24,0,22)
-    holder.Position = UDim2.new(0,12,0,26)
+    holder.Position = UDim2.new(0,12,0,28)
     holder.BackgroundTransparency = 1
     local hl = Instance.new("UIListLayout", holder)
     hl.FillDirection = Enum.FillDirection.Horizontal
@@ -413,26 +391,25 @@ end
 
 local function sc(p)
     local s = Instance.new("ScrollingFrame", p)
-    s.Size = UDim2.new(1,-8,1,-56)
-    s.Position = UDim2.new(0,4,0,52)
+    s.Size = UDim2.new(1,-8,1,-60)
+    s.Position = UDim2.new(0,4,0,56)
     s.BackgroundTransparency = 1
     s.BorderSizePixel = 0
     s.ScrollBarThickness = 3
     s.ScrollBarImageColor3 = C.accent
     s.CanvasSize = UDim2.new(0,0,0,0)
     s.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    s.Padding = UDim.new(0,8,0,8)
     local l = Instance.new("UIListLayout", s)
     l.Padding = UDim.new(0,6)
     l.SortOrder = Enum.SortOrder.LayoutOrder
     return s
 end
 
-local CombatP  = page("Combat", "Combat")
-local ExploitP = page("Exploits", "Exploits")
-local VisualP  = page("Visuals", "Visuals")
-local ColorP   = page("Colors", "Colors")
-local ConfigP  = page("Config", "Config")
+local CombatP  = page("Combat")
+local ExploitP = page("Exploits")
+local VisualP  = page("Visuals")
+local ColorP   = page("Colors")
+local ConfigP  = page("Config")
 
 local CombatS  = sc(CombatP)
 local ExploitS = sc(ExploitP)
@@ -468,9 +445,7 @@ tog(ExploitS, "TP to Enemy", false, 6, function(v)
         if t then
             local c = LP.Character
             local hr = c and c:FindFirstChild("HumanoidRootPart")
-            if hr then
-                hr.CFrame = CFrame.new(t.Position + Vector3.new(0, 3, 0))
-            end
+            if hr then hr.CFrame = CFrame.new(t.Position + Vector3.new(0, 3, 0)) end
         end
         task.delay(0.3, function() cfg.tpEnemy = false end)
     end
@@ -486,47 +461,27 @@ tog(VisualS, "Name", cfg.name, 4, function(v) cfg.name=v end)
 tog(VisualS, "Health", cfg.hp, 5, function(v) cfg.hp=v end)
 tog(VisualS, "Distance", cfg.dist, 6, function(v) cfg.dist=v end)
 
-local function recolor()
-    Main.BackgroundColor3 = C.bg
-    Sidebar.BackgroundColor3 = C.panel
-    LogoBox.BackgroundColor3 = C.card
-    Float.BackgroundColor3 = C.panel
-    Float.TextColor3 = C.accent
-    ms.Color = C.on
-    fs.Color = C.accent
-    for _, el in ipairs(gui:GetDescendants()) do
-        if el:IsA("TextButton") and el.Parent and el.Parent ~= CatFrame then
-            if el.BackgroundColor3 ~= Color3.fromRGB(32,32,38) and el.BackgroundColor3 ~= Color3.fromRGB(140,45,45) then
-                el.BackgroundColor3 = C.card
-            end
-            el.TextColor3 = C.txt
-        elseif el:IsA("TextButton") and el.Parent == CatFrame then
-            el.BackgroundColor3 = C.panel
-        elseif el:IsA("TextLabel") then
-            if el.Name ~= "Indicator" then el.TextColor3 = C.txt end
-        elseif el:IsA("Frame") then
-            if el.Name == "HeaderLine" then el.BackgroundColor3 = C.on end
-        end
-    end
-end
-
-local function applyTheme(idx)
-    local t = THEMES[idx]
-    for k,v in pairs(t) do if k ~= "name" then C[k] = v end end
-    recolor()
-end
-
 local themeNames = {}
 for i, t in ipairs(THEMES) do themeNames[i] = t.name end
 row(ColorS, "Theme", themeNames, THEMES[1].name, 1, function(v)
     for i, t in ipairs(THEMES) do
-        if t.name == v then applyTheme(i); break end
+        if t.name == v then
+            for k,val in pairs(t) do if k ~= "name" then C[k] = val end end
+            Main.BackgroundColor3 = C.bg
+            Sidebar.BackgroundColor3 = C.panel
+            Float.BackgroundColor3 = C.panel
+            Float.TextColor3 = C.accent
+            LogoLabel.TextColor3 = C.accent
+            fs.Color = C.accent
+            ms.Color = C.on
+            break
+        end
     end
 end)
 
 local exitBtn = Instance.new("TextButton", ConfigP)
-exitBtn.Size = UDim2.new(1,-32,0,38)
-exitBtn.Position = UDim2.new(0,16,0,60)
+exitBtn.Size = UDim2.new(1,-36,0,40)
+exitBtn.Position = UDim2.new(0,18,0,64)
 exitBtn.BackgroundColor3 = Color3.fromRGB(140,45,45)
 exitBtn.Text = "Exit"
 exitBtn.TextColor3 = Color3.fromRGB(240,220,220)
