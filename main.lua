@@ -98,4 +98,3 @@ do
             if d.Magnitude > 5 then moved = true end
             Float.Position = UDim2.new(0, sp.X + d.X, 0, sp.Y + d.Y)
         end
-... (789 linhas)
