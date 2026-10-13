@@ -1,7 +1,8 @@
 --[[
   evil ui - evilcorp
-  external-style roblox executor script
+  roblox executor script
   fixes: silent aim (metatable hook robusto) + esp culling/cache
+  add: noclip
 ]]
 
 local Players     = game:GetService("Players")
@@ -17,7 +18,7 @@ local cfg = {
     aim=false, aimPart="Head", silent=false, trigger=false, aimVisible=false,
     fovCircle=false, fov=150, smooth=50,
     god=false, fly=false, spd=60,
-    speed=false, speedVal=0,
+    speed=false, speedVal=0, noclip=false,
     tpEnemy=false,
 }
 
@@ -444,7 +445,18 @@ sld(ExploitS, "Fly Speed", 10, 300, cfg.spd, 2, function(v) cfg.spd = v end)
 tog(ExploitS, "Speed", cfg.speed, 3, function(v) cfg.speed=v end)
 sld(ExploitS, "Speed Value", 0, 30, cfg.speedVal, 4, function(v) cfg.speedVal = v end)
 tog(ExploitS, "Godmode", cfg.god, 5, function(v) cfg.god=v end)
-tog(ExploitS, "TP to Enemy", false, 6, function(v)
+tog(ExploitS, "Noclip", cfg.noclip, 6, function(v)
+    cfg.noclip = v
+    if not v then
+        local c = LP.Character
+        if c then
+            for _, part in ipairs(c:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end
+end)
+tog(ExploitS, "TP to Enemy", false, 7, function(v)
     if v then
         local t = target and target()
         if t then
@@ -456,8 +468,8 @@ tog(ExploitS, "TP to Enemy", false, 6, function(v)
     end
     cfg.tpEnemy = false
 end)
-tog(ExploitS, "Rapid Fire", false, 7, function(v) if applyRapid then applyRapid(v) end end)
-tog(ExploitS, "Rejoin", false, 8, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
+tog(ExploitS, "Rapid Fire", false, 8, function(v) if applyRapid then applyRapid(v) end end)
+tog(ExploitS, "Rejoin", false, 9, function(v) if v then TPS:Teleport(game.PlaceId, LP) end end)
 
 tog(VisualS, "ATIVAR ESP", cfg.esp, 1, function(v) cfg.esp=v end)
 tog(VisualS, "Box", cfg.box, 2, function(v) cfg.box=v end)
@@ -556,7 +568,6 @@ if hasDrawing then
     Fov.Transparency=0.7; Fov.NumSides=64; Fov.Filled=false; Fov.Visible=false
 end
 
--- cached references, updated once per frame
 local playerList = {}
 local function rebuildPlayerList()
     playerList = Players:GetPlayers()
@@ -579,7 +590,6 @@ local SKEL_R6 = {
     {"Torso","Left Leg"},{"Torso","Right Leg"},
 }
 
--- project world point, returns screen vec + depth, or nil if behind camera
 local function project(pos)
     local sp, on = Camera:WorldToViewportPoint(pos)
     if not on then return nil end
@@ -694,7 +704,7 @@ target = function()
 end
 
 -- ============================================================
--- SILENT AIM (metatable hook, robust)
+-- SILENT AIM (metatable hook robusto + fallback)
 -- ============================================================
 
 local silentHooked = false
@@ -739,20 +749,16 @@ local function installSilentHook()
     return true
 end
 
--- fallback silencioso: se não der pra hookar, usa o mouse.Target
 local silentFallbackActive = false
 local function silentFallbackLoop()
     if silentFallbackActive then return end
     silentFallbackActive = true
     RunService.RenderStepped:Connect(function()
-        if not cfg.silent then return end
-        if silentHooked then return end
+        if not cfg.silent or silentHooked then return end
         local t = target()
         if t then
             local mouse = LP:GetMouse()
-            if mouse then
-                pcall(function() mouse.TargetFilter = nil end)
-            end
+            if mouse then pcall(function() mouse.TargetFilter = nil end) end
         end
     end)
 end
@@ -762,7 +768,7 @@ if not installSilentHook() then
 end
 
 -- ============================================================
--- RENDER LOOPS
+-- RENDER LOOP (ESP + FOV)
 -- ============================================================
 
 RunService.RenderStepped:Connect(function()
@@ -777,7 +783,6 @@ RunService.RenderStepped:Connect(function()
         return
     end
 
-    -- cleanup players that left
     for p, e in pairs(Cache) do
         if not p or not p.Parent or p == LP then
             hide(e)
@@ -802,12 +807,8 @@ RunService.RenderStepped:Connect(function()
             if e and valid then
                 local ok, cf, size = pcall(function() return c:GetBoundingBox() end)
                 if ok then
-                    local corners = {
-                        cf.Position - size/2,
-                        cf.Position + size/2,
-                    }
-                    local p0 = project(corners[1])
-                    local p1 = project(corners[2])
+                    local p0 = project(cf.Position - size/2)
+                    local p1 = project(cf.Position + size/2)
                     if p0 and p1 then
                         local x = math.min(p0.X, p1.X)
                         local y = math.min(p0.Y, p1.Y)
@@ -911,7 +912,7 @@ function applyRapid(state)
 end
 
 -- ============================================================
--- GOD / FLY / SPEED
+-- GOD / FLY / SPEED / NOCLIP
 -- ============================================================
 
 local function applyGod()
@@ -932,6 +933,20 @@ end
 
 RunService.Heartbeat:Connect(function()
     if cfg.god then applyGod() end
+end)
+
+local function applyNoclip()
+    local c = LP.Character
+    if not c then return end
+    for _, part in ipairs(c:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not cfg.noclip
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if cfg.noclip then applyNoclip() end
 end)
 
 function setFly(s)
@@ -990,6 +1005,8 @@ RunService.Heartbeat:Connect(function()
 end)
 
 LP.CharacterAdded:Connect(function()
+    task.wait(0.5)
     if cfg.fly then setFly(true) end
     if cfg.god then applyGod() end
+    if cfg.noclip then applyNoclip() end
 end)
