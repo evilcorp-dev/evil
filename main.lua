@@ -2,7 +2,7 @@
   evil ui - evilcorp
   roblox executor script
   fixes: silent aim (metatable hook robusto) + esp culling/cache
-  add: noclip, exit desativa tudo
+  add: noclip, exit desativa tudo, float image
 ]]
 
 local Players     = game:GetService("Players")
@@ -12,6 +12,8 @@ local Workspace   = game:GetService("Workspace")
 local TPS         = game:GetService("TeleportService")
 local LP          = Players.LocalPlayer
 local Camera      = Workspace.CurrentCamera
+
+local IMAGE_ID = "rbxassetid://SEU_ID_AQUI" -- <<<< cola o id da imagem aqui
 
 local cfg = {
     esp=false, box=true, skel=true, name=true, hp=true, dist=true,
@@ -46,14 +48,13 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
 if not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
 
-local Float = Instance.new("TextButton")
+-- float = image button
+local Float = Instance.new("ImageButton")
 Float.Size = UDim2.new(0,58,0,58)
 Float.Position = UDim2.new(0,30,0,120)
 Float.BackgroundColor3 = C.panel
-Float.Text = "Evil"
-Float.TextColor3 = C.accent
-Float.Font = Enum.Font.GothamBlack
-Float.TextSize = 14
+Float.Image = IMAGE_ID
+Float.ImageColor3 = Color3.fromRGB(255,255,255)
 Float.AutoButtonColor = false
 Float.Parent = gui
 Instance.new("UICorner", Float).CornerRadius = UDim.new(1,0)
@@ -124,14 +125,13 @@ LogoBox.Size = UDim2.new(1,0,0,80)
 LogoBox.Position = UDim2.new(0,0,0,6)
 LogoBox.BackgroundTransparency = 1
 
-local LogoLabel = Instance.new("TextLabel", LogoBox)
-LogoLabel.Size = UDim2.new(1,0,1,0)
-LogoLabel.BackgroundTransparency = 1
-LogoLabel.Text = "Evil"
-LogoLabel.TextColor3 = C.accent
-LogoLabel.Font = Enum.Font.GothamBlack
-LogoLabel.TextSize = 34
-LogoLabel.TextXAlignment = Enum.TextXAlignment.Center
+local LogoImage = Instance.new("ImageLabel", LogoBox)
+LogoImage.Size = UDim2.new(0,54,0,54)
+LogoImage.Position = UDim2.new(0.5,-27,0.5,-27)
+LogoImage.BackgroundTransparency = 1
+LogoImage.Image = IMAGE_ID
+LogoImage.ImageColor3 = C.accent
+LogoImage.ScaleType = Enum.ScaleType.Fit
 
 local CatFrame = Instance.new("Frame", Sidebar)
 CatFrame.Size = UDim2.new(1,-16,1,-102)
@@ -234,7 +234,6 @@ local function cat(icon, n, o)
     return b
 end
 
--- tog with handle so exit can reset visual state
 local toggles = {}
 local function tog(p, label, def, order, cb)
     local b = Instance.new("TextButton", p)
@@ -501,8 +500,7 @@ row(ColorS, "Theme", themeNames, THEMES[1].name, 1, function(v)
             Main.BackgroundColor3 = C.bg
             Sidebar.BackgroundColor3 = C.panel
             Float.BackgroundColor3 = C.panel
-            Float.TextColor3 = C.accent
-            LogoLabel.TextColor3 = C.accent
+            LogoImage.ImageColor3 = C.accent
             fs.Color = C.accent
             ms.Color = C.on
             break
@@ -512,10 +510,7 @@ end)
 
 sel("Combat")
 
--- ============================================================
 -- ESP
--- ============================================================
-
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
 
@@ -568,9 +563,7 @@ if hasDrawing then
 end
 
 local playerList = {}
-local function rebuildPlayerList()
-    playerList = Players:GetPlayers()
-end
+local function rebuildPlayerList() playerList = Players:GetPlayers() end
 rebuildPlayerList()
 Players.PlayerAdded:Connect(rebuildPlayerList)
 Players.PlayerRemoving:Connect(rebuildPlayerList)
@@ -614,10 +607,6 @@ local function drawSkel(c, e)
         end
     end
 end
-
--- ============================================================
--- AIM helpers
--- ============================================================
 
 isVisible = function(targetPart)
     if not cfg.aimVisible then return true end
@@ -702,10 +691,7 @@ target = function()
     return best
 end
 
--- ============================================================
 -- SILENT AIM
--- ============================================================
-
 local silentHooked = false
 local originalNamecall
 
@@ -766,10 +752,7 @@ if not installSilentHook() then
     silentFallbackLoop()
 end
 
--- ============================================================
--- RENDER LOOP
--- ============================================================
-
+-- RENDER
 RunService.RenderStepped:Connect(function()
     if Fov then
         Fov.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
@@ -859,10 +842,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ============================================================
 -- AIMBOT
--- ============================================================
-
 RunService.RenderStepped:Connect(function()
     if not cfg.aim then return end
     local t = target()
@@ -872,10 +852,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ============================================================
--- TRIGGERBOT
--- ============================================================
-
+-- TRIGGER
 RunService.RenderStepped:Connect(function()
     if not cfg.trigger then return end
     local t = target()
@@ -885,10 +862,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ============================================================
--- RAPID FIRE
--- ============================================================
-
+-- RAPID
 local rapidConn
 function applyRapid(state)
     if rapidConn then rapidConn:Disconnect() rapidConn = nil end
@@ -910,10 +884,7 @@ function applyRapid(state)
     end)
 end
 
--- ============================================================
--- GOD / FLY / SPEED / NOCLIP
--- ============================================================
-
+-- GOD
 local function applyGod()
     local c = LP.Character
     if not c then return end
@@ -934,6 +905,7 @@ RunService.Heartbeat:Connect(function()
     if cfg.god then applyGod() end
 end)
 
+-- NOCLIP
 local function applyNoclip()
     local c = LP.Character
     if not c then return end
@@ -948,6 +920,7 @@ RunService.Heartbeat:Connect(function()
     if cfg.noclip then applyNoclip() end
 end)
 
+-- FLY
 function setFly(s)
     local c = LP.Character
     if not c then return end
@@ -983,6 +956,7 @@ RunService.RenderStepped:Connect(function()
     _G.EvilBG.CFrame = Camera.CFrame
 end)
 
+-- SPEED
 local function applySpeed()
     local c = LP.Character
     if not c then return end
@@ -1003,31 +977,23 @@ RunService.Heartbeat:Connect(function()
     if cfg.speed or cfg.speedVal > 0 then applySpeed() end
 end)
 
--- ============================================================
--- EXIT — reset everything
--- ============================================================
-
+-- EXIT
 local function resetAll()
-    -- toggle flags off
     cfg.esp=false cfg.box=false cfg.skel=false cfg.name=false cfg.hp=false cfg.dist=false
     cfg.aim=false cfg.silent=false cfg.trigger=false cfg.aimVisible=false cfg.fovCircle=false
     cfg.god=false cfg.fly=false cfg.noclip=false
     cfg.speed=false cfg.speedVal=0
     cfg.tpEnemy=false
 
-    -- visual toggles reflect new state
     for _, t in ipairs(toggles) do
         t.setVisual(false)
     end
 
-    -- fly cleanup
     if _G.EvilBV then pcall(function() _G.EvilBV:Destroy() end) _G.EvilBV=nil end
     if _G.EvilBG then pcall(function() _G.EvilBG:Destroy() end) _G.EvilBG=nil end
 
-    -- rapid cleanup
     if applyRapid then pcall(function() applyRapid(false) end) end
 
-    -- noclip off -> restore collision
     local c = LP.Character
     if c then
         for _, part in ipairs(c:GetDescendants()) do
@@ -1042,7 +1008,6 @@ local function resetAll()
         end
     end
 
-    -- esp / fov visuals off + remove drawings
     for p, e in pairs(Cache) do
         hide(e)
         clearCache(p)
@@ -1065,10 +1030,6 @@ exitBtn.MouseButton1Click:Connect(function()
     Float.Visible = false
     Main.Visible = false
 end)
-
--- ============================================================
--- RESPAWN HOOK
--- ============================================================
 
 LP.CharacterAdded:Connect(function()
     task.wait(0.5)
