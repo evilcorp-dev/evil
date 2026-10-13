@@ -1,3 +1,9 @@
+--[[
+  evil ui - evilcorp
+  external-style roblox executor script
+  fixes: silent aim (metatable hook robusto) + esp culling/cache
+]]
+
 local Players     = game:GetService("Players")
 local RunService  = game:GetService("RunService")
 local UIS         = game:GetService("UserInputService")
@@ -28,9 +34,8 @@ local C = {}
 for k,v in pairs(THEMES[1]) do C[k] = v end
 
 pcall(function()
-    if game:GetService("CoreGui"):FindFirstChild("EvilUI") then
-        game:GetService("CoreGui").EvilUI:Destroy()
-    end
+    local cg = game:GetService("CoreGui")
+    if cg:FindFirstChild("EvilUI") then cg.EvilUI:Destroy() end
 end)
 
 local gui = Instance.new("ScreenGui")
@@ -496,26 +501,16 @@ end)
 
 sel("Combat")
 
+-- ============================================================
+-- ESP (rework)
+-- ============================================================
+
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
-
-local function clearCache(p)
-    local d = Cache[p]
-    if not d then return end
-    Cache[p] = nil
-    if d.box then pcall(function() d.box:Remove() end) end
-    if d.name then pcall(function() d.name:Remove() end) end
-    if d.hp then pcall(function() d.hp:Remove() end) end
-    if d.dist then pcall(function() d.dist:Remove() end) end
-    if d.skel then
-        for _, l in pairs(d.skel) do pcall(function() l:Remove() end) end
-    end
-end
 
 local function mkESP(p)
     if p == LP or not hasDrawing then return end
     if Cache[p] then return end
-    if not p.Parent then return end
     local d = {}
     d.box  = Drawing.new("Square"); d.box.Thickness=1; d.box.Filled=false; d.box.Visible=false
     d.name = Drawing.new("Text"); d.name.Size=14; d.name.Center=true; d.name.Outline=true; d.name.Visible=false
@@ -532,11 +527,27 @@ local function mkESP(p)
     Cache[p] = d
 end
 
+local function clearCache(p)
+    local d = Cache[p]
+    if not d then return end
+    Cache[p] = nil
+    if d.box  then pcall(function() d.box:Remove()  end) end
+    if d.name then pcall(function() d.name:Remove() end) end
+    if d.hp   then pcall(function() d.hp:Remove()   end) end
+    if d.dist then pcall(function() d.dist:Remove() end) end
+    if d.skel then
+        for _, l in pairs(d.skel) do pcall(function() l:Remove() end) end
+    end
+end
+
+local function hide(e)
+    e.box.Visible=false e.name.Visible=false e.hp.Visible=false e.dist.Visible=false
+    for _, l in pairs(e.skel) do l.Visible=false end
+end
+
 for _, p in ipairs(Players:GetPlayers()) do mkESP(p) end
 Players.PlayerAdded:Connect(mkESP)
-Players.PlayerRemoving:Connect(function(p)
-    clearCache(p)
-end)
+Players.PlayerRemoving:Connect(function(p) clearCache(p) end)
 
 local Fov
 if hasDrawing then
@@ -545,15 +556,14 @@ if hasDrawing then
     Fov.Transparency=0.7; Fov.NumSides=64; Fov.Filled=false; Fov.Visible=false
 end
 
-local function w2v(p)
-    local s = Camera:WorldToViewportPoint(p)
-    return Vector2.new(s.X, s.Y)
+-- cached references, updated once per frame
+local playerList = {}
+local function rebuildPlayerList()
+    playerList = Players:GetPlayers()
 end
-
-local function hide(e)
-    e.box.Visible=false e.name.Visible=false e.hp.Visible=false e.dist.Visible=false
-    for _, l in pairs(e.skel) do l.Visible=false end
-end
+rebuildPlayerList()
+Players.PlayerAdded:Connect(rebuildPlayerList)
+Players.PlayerRemoving:Connect(rebuildPlayerList)
 
 local SKEL_R15 = {
     {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
@@ -569,85 +579,36 @@ local SKEL_R6 = {
     {"Torso","Left Leg"},{"Torso","Right Leg"},
 }
 
+-- project world point, returns screen vec + depth, or nil if behind camera
+local function project(pos)
+    local sp, on = Camera:WorldToViewportPoint(pos)
+    if not on then return nil end
+    if sp.Z <= 0 then return nil end
+    return Vector2.new(sp.X, sp.Y), sp.Z
+end
+
 local function drawSkel(c, e)
-    local isR15 = c:FindFirstChild("UpperTorso") ~= nil
-    local bones = isR15 and SKEL_R15 or SKEL_R6
+    local bones = c:FindFirstChild("UpperTorso") and SKEL_R15 or SKEL_R6
     for i, l in pairs(e.skel) do l.Visible = false end
     for i, pr in ipairs(bones) do
         local a = c:FindFirstChild(pr[1])
         local b = c:FindFirstChild(pr[2])
         local l = e.skel[i]
         if a and b and l then
-            l.From = w2v(a.Position)
-            l.To   = w2v(b.Position)
-            l.Visible = true
+            local fa = project(a.Position)
+            local tb = project(b.Position)
+            if fa and tb then
+                l.From = fa
+                l.To   = tb
+                l.Visible = true
+            end
         end
     end
 end
 
-RunService.RenderStepped:Connect(function()
-    if Fov then
-        Fov.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-        Fov.Radius = cfg.fov
-        Fov.Visible = cfg.fovCircle
-    end
-    for p, e in pairs(Cache) do
-        if not p or not p.Parent or p == LP then
-            hide(e)
-            task.spawn(function() clearCache(p) end)
-        else
-            local c = p.Character
-            local hr = c and c:FindFirstChild("HumanoidRootPart")
-            local hd = c and c:FindFirstChild("Head")
-            local hm = c and c:FindFirstChildOfClass("Humanoid")
-            local valid = c and hr and hr.Parent and hd and hd.Parent and hm and hm.Parent and hm.Health > 0
-            if not cfg.esp or not valid then
-                hide(e)
-                if not p.Parent then task.spawn(function() clearCache(p) end) end
-            else
-                local ok, cf, size = pcall(function() return c:GetBoundingBox() end)
-                if ok then
-                    local p0 = w2v(cf.Position - size/2)
-                    local p1 = w2v(cf.Position + size/2)
-                    local x,y = math.min(p0.X,p1.X), math.min(p0.Y,p1.Y)
-                    local w,h = math.abs(p1.X-p0.X), math.abs(p1.Y-p0.Y)
-                    if w > 0 and h > 0 and w < 2000 and h < 2000 then
-                        e.box.Size = Vector2.new(w,h)
-                        e.box.Position = Vector2.new(x,y)
-                        e.box.Color = Color3.fromRGB(230,230,235)
-                        e.box.Visible = cfg.box
-                        e.name.Text = p.Name
-                        e.name.Position = Vector2.new(x+w/2, y-18)
-                        e.name.Color = Color3.fromRGB(255,255,255)
-                        e.name.Visible = cfg.name
-                        local hpr = hm.Health / math.max(hm.MaxHealth,1)
-                        e.hp.From = Vector2.new(x-6, y+h)
-                        e.hp.To   = Vector2.new(x-6, y+h-h*hpr)
-                        e.hp.Visible = cfg.hp
-                        if cfg.dist then
-                            local mr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                            if mr and mr.Parent then
-                                e.dist.Text = "["..math.floor((mr.Position-hr.Position).Magnitude).."]"
-                                e.dist.Position = Vector2.new(x+w/2, y+h+4)
-                                e.dist.Color = Color3.fromRGB(255,255,255)
-                                e.dist.Visible = true
-                            end
-                        else e.dist.Visible = false end
-                        if cfg.skel then
-                            drawSkel(c, e)
-                        else
-                            for _, l in pairs(e.skel) do l.Visible=false end
-                        end
-                    else
-                        hide(e)
-                    end
-                else
-                    hide(e)
-                end
-            end
-        end
-    end
-end)
+-- ============================================================
+-- AIM helpers
+-- ============================================================
 
 isVisible = function(targetPart)
     if not cfg.aimVisible then return true end
@@ -710,7 +671,7 @@ end
 target = function()
     local best, bd = nil, cfg.fov
     local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
-    for _, p in ipairs(Players:GetPlayers()) do
+    for _, p in ipairs(playerList) do
         if p ~= LP and p.Parent and not sameTeam(p) then
             local c = p.Character
             local hm = c and c:FindFirstChildOfClass("Humanoid")
@@ -718,13 +679,11 @@ target = function()
                 local part = aimPoint(c)
                 if part and part.Parent then
                     local sp, on = Camera:WorldToViewportPoint(part.Position)
-                    if on then
+                    if on and sp.Z > 0 then
                         local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-                        if d < bd then
-                            if isVisible(part) then
-                                bd = d
-                                best = part
-                            end
+                        if d < bd and isVisible(part) then
+                            bd = d
+                            best = part
                         end
                     end
                 end
@@ -733,6 +692,176 @@ target = function()
     end
     return best
 end
+
+-- ============================================================
+-- SILENT AIM (metatable hook, robust)
+-- ============================================================
+
+local silentHooked = false
+local originalNamecall
+
+local function installSilentHook()
+    if silentHooked then return true end
+    if not (getrawmetatable and setreadonly and hookmetamethod and newcclosure and checkcaller) then
+        return false
+    end
+    local mt = getrawmetatable(game)
+    if not mt or not mt.__namecall then return false end
+    local old = mt.__namecall
+    local ok = pcall(function()
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if cfg.silent and not checkcaller() then
+                if method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList"
+                   or method == "FindPartOnRayWithWhitelist" or method == "Raycast"
+                   or method == "GetMouse" or method == "ViewportPointToRay"
+                   or method == "ScreenPointToRay" or method == "GetTarget" then
+                    local t = target()
+                    if t then
+                        if method == "GetTarget" then
+                            return t
+                        end
+                        if method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList"
+                           or method == "FindPartOnRayWithWhitelist" then
+                            return t, t.Position, t.Position, t
+                        end
+                    end
+                end
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+    end)
+    if not ok then return false end
+    originalNamecall = old
+    silentHooked = true
+    return true
+end
+
+-- fallback silencioso: se não der pra hookar, usa o mouse.Target
+local silentFallbackActive = false
+local function silentFallbackLoop()
+    if silentFallbackActive then return end
+    silentFallbackActive = true
+    RunService.RenderStepped:Connect(function()
+        if not cfg.silent then return end
+        if silentHooked then return end
+        local t = target()
+        if t then
+            local mouse = LP:GetMouse()
+            if mouse then
+                pcall(function() mouse.TargetFilter = nil end)
+            end
+        end
+    end)
+end
+
+if not installSilentHook() then
+    silentFallbackLoop()
+end
+
+-- ============================================================
+-- RENDER LOOPS
+-- ============================================================
+
+RunService.RenderStepped:Connect(function()
+    if Fov then
+        Fov.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        Fov.Radius = cfg.fov
+        Fov.Visible = cfg.fovCircle
+    end
+
+    if not cfg.esp or not hasDrawing then
+        for _, e in pairs(Cache) do hide(e) end
+        return
+    end
+
+    -- cleanup players that left
+    for p, e in pairs(Cache) do
+        if not p or not p.Parent or p == LP then
+            hide(e)
+            clearCache(p)
+        end
+    end
+
+    local myHr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+
+    for _, p in ipairs(playerList) do
+        if p ~= LP and p.Parent then
+            local e = Cache[p]
+            if not e then
+                mkESP(p)
+                e = Cache[p]
+            end
+            local c  = p.Character
+            local hr = c and c:FindFirstChild("HumanoidRootPart")
+            local hd = c and c:FindFirstChild("Head")
+            local hm = c and c:FindFirstChildOfClass("Humanoid")
+            local valid = c and hr and hr.Parent and hd and hd.Parent and hm and hm.Parent and hm.Health > 0
+            if e and valid then
+                local ok, cf, size = pcall(function() return c:GetBoundingBox() end)
+                if ok then
+                    local corners = {
+                        cf.Position - size/2,
+                        cf.Position + size/2,
+                    }
+                    local p0 = project(corners[1])
+                    local p1 = project(corners[2])
+                    if p0 and p1 then
+                        local x = math.min(p0.X, p1.X)
+                        local y = math.min(p0.Y, p1.Y)
+                        local w = math.abs(p1.X - p0.X)
+                        local h = math.abs(p1.Y - p0.Y)
+                        if w > 1 and h > 1 and w < 2000 and h < 2000 then
+                            e.box.Size = Vector2.new(w, h)
+                            e.box.Position = Vector2.new(x, y)
+                            e.box.Color = Color3.fromRGB(230, 230, 235)
+                            e.box.Visible = cfg.box
+
+                            e.name.Text = p.Name
+                            e.name.Position = Vector2.new(x + w/2, y - 18)
+                            e.name.Color = Color3.fromRGB(255, 255, 255)
+                            e.name.Visible = cfg.name
+
+                            local hpr = hm.Health / math.max(hm.MaxHealth, 1)
+                            e.hp.From = Vector2.new(x - 6, y + h)
+                            e.hp.To   = Vector2.new(x - 6, y + h - h*hpr)
+                            e.hp.Visible = cfg.hp
+
+                            if cfg.dist and myHr then
+                                e.dist.Text = "[" .. math.floor((myHr.Position - hr.Position).Magnitude) .. "]"
+                                e.dist.Position = Vector2.new(x + w/2, y + h + 4)
+                                e.dist.Color = Color3.fromRGB(255, 255, 255)
+                                e.dist.Visible = true
+                            else
+                                e.dist.Visible = false
+                            end
+
+                            if cfg.skel then
+                                drawSkel(c, e)
+                            else
+                                for _, l in pairs(e.skel) do l.Visible = false end
+                            end
+                        else
+                            hide(e)
+                        end
+                    else
+                        hide(e)
+                    end
+                else
+                    hide(e)
+                end
+            elseif e then
+                hide(e)
+            end
+        end
+    end
+end)
+
+-- ============================================================
+-- AIMBOT loop
+-- ============================================================
 
 RunService.RenderStepped:Connect(function()
     if not cfg.aim then return end
@@ -743,39 +872,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-do
-    if hookmetamethod and getrawmetatable and checkcaller and newcclosure then
-        pcall(function()
-            local mt = getrawmetatable(game)
-            local oldNamecall = mt.__namecall
-            setreadonly(mt, false)
-            mt.__namecall = newcclosure(function(self, ...)
-                local method = getnamecallmethod()
-                if cfg.silent and not checkcaller() then
-                    if self == LP:GetMouse() then
-                        if method == "get_Hit" or method == "Hit" then
-                            local t = target()
-                            if t then return CFrame.new(t.Position) end
-                        elseif method == "get_Target" or method == "Target" then
-                            local t = target()
-                            if t then return t end
-                        end
-                    elseif self == Camera then
-                        if method == "ViewportPointToRay" or method == "ScreenPointToRay" then
-                            local t = target()
-                            if t then
-                                local vp = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-                                return oldNamecall(self, vp)
-                            end
-                        end
-                    end
-                end
-                return oldNamecall(self, ...)
-            end)
-            setreadonly(mt, true)
-        end)
-    end
-end
+-- ============================================================
+-- TRIGGERBOT
+-- ============================================================
 
 RunService.RenderStepped:Connect(function()
     if not cfg.trigger then return end
@@ -785,6 +884,10 @@ RunService.RenderStepped:Connect(function()
         if d < 100 then pcall(function() mouse1click() end) end
     end
 end)
+
+-- ============================================================
+-- RAPID FIRE
+-- ============================================================
 
 local rapidConn
 function applyRapid(state)
@@ -806,6 +909,10 @@ function applyRapid(state)
         end
     end)
 end
+
+-- ============================================================
+-- GOD / FLY / SPEED
+-- ============================================================
 
 local function applyGod()
     local c = LP.Character
