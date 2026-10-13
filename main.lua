@@ -2,7 +2,7 @@
   evil ui - evilcorp
   roblox executor script
   fixes: silent aim (metatable hook robusto) + esp culling/cache
-  add: noclip
+  add: noclip, exit desativa tudo
 ]]
 
 local Players     = game:GetService("Players")
@@ -234,6 +234,8 @@ local function cat(icon, n, o)
     return b
 end
 
+-- tog with handle so exit can reset visual state
+local toggles = {}
 local function tog(p, label, def, order, cb)
     local b = Instance.new("TextButton", p)
     b.Size = UDim2.new(1,-36,0,38)
@@ -271,6 +273,18 @@ local function tog(p, label, def, order, cb)
     check.Visible = def
 
     local s = def
+    local entry = {}
+    entry.setVisual = function(state)
+        s = state
+        chk.BackgroundColor3 = s and C.accent or Color3.fromRGB(32,32,38)
+        check.Visible = s
+    end
+    entry.fire = function(state)
+        entry.setVisual(state)
+        cb(state)
+    end
+    toggles[#toggles+1] = entry
+
     b.MouseButton1Click:Connect(function()
         s = not s
         chk.BackgroundColor3 = s and C.accent or Color3.fromRGB(32,32,38)
@@ -496,25 +510,10 @@ row(ColorS, "Theme", themeNames, THEMES[1].name, 1, function(v)
     end
 end)
 
-local exitBtn = Instance.new("TextButton", ConfigP)
-exitBtn.Size = UDim2.new(1,-36,0,40)
-exitBtn.Position = UDim2.new(0,18,0,64)
-exitBtn.BackgroundColor3 = Color3.fromRGB(140,45,45)
-exitBtn.Text = "Exit"
-exitBtn.TextColor3 = Color3.fromRGB(240,220,220)
-exitBtn.Font = Enum.Font.GothamBold
-exitBtn.TextSize = 13
-exitBtn.AutoButtonColor = false
-Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
-exitBtn.MouseButton1Click:Connect(function()
-    Float.Visible = false
-    Main.Visible = false
-end)
-
 sel("Combat")
 
 -- ============================================================
--- ESP (rework)
+-- ESP
 -- ============================================================
 
 local hasDrawing = pcall(function() return Drawing.new end)
@@ -704,7 +703,7 @@ target = function()
 end
 
 -- ============================================================
--- SILENT AIM (metatable hook robusto + fallback)
+-- SILENT AIM
 -- ============================================================
 
 local silentHooked = false
@@ -768,7 +767,7 @@ if not installSilentHook() then
 end
 
 -- ============================================================
--- RENDER LOOP (ESP + FOV)
+-- RENDER LOOP
 -- ============================================================
 
 RunService.RenderStepped:Connect(function()
@@ -861,7 +860,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- AIMBOT loop
+-- AIMBOT
 -- ============================================================
 
 RunService.RenderStepped:Connect(function()
@@ -1003,6 +1002,73 @@ end
 RunService.Heartbeat:Connect(function()
     if cfg.speed or cfg.speedVal > 0 then applySpeed() end
 end)
+
+-- ============================================================
+-- EXIT — reset everything
+-- ============================================================
+
+local function resetAll()
+    -- toggle flags off
+    cfg.esp=false cfg.box=false cfg.skel=false cfg.name=false cfg.hp=false cfg.dist=false
+    cfg.aim=false cfg.silent=false cfg.trigger=false cfg.aimVisible=false cfg.fovCircle=false
+    cfg.god=false cfg.fly=false cfg.noclip=false
+    cfg.speed=false cfg.speedVal=0
+    cfg.tpEnemy=false
+
+    -- visual toggles reflect new state
+    for _, t in ipairs(toggles) do
+        t.setVisual(false)
+    end
+
+    -- fly cleanup
+    if _G.EvilBV then pcall(function() _G.EvilBV:Destroy() end) _G.EvilBV=nil end
+    if _G.EvilBG then pcall(function() _G.EvilBG:Destroy() end) _G.EvilBG=nil end
+
+    -- rapid cleanup
+    if applyRapid then pcall(function() applyRapid(false) end) end
+
+    -- noclip off -> restore collision
+    local c = LP.Character
+    if c then
+        for _, part in ipairs(c:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+        local hm = c:FindFirstChildOfClass("Humanoid")
+        if hm then
+            local base = hm:GetAttribute("EvilBaseSpeed") or 16
+            hm.WalkSpeed = base
+            hm.MaxHealth = 100
+            hm.Health = math.min(hm.Health, 100)
+        end
+    end
+
+    -- esp / fov visuals off + remove drawings
+    for p, e in pairs(Cache) do
+        hide(e)
+        clearCache(p)
+    end
+    if Fov then Fov.Visible = false end
+end
+
+local exitBtn = Instance.new("TextButton", ConfigP)
+exitBtn.Size = UDim2.new(1,-36,0,40)
+exitBtn.Position = UDim2.new(0,18,0,64)
+exitBtn.BackgroundColor3 = Color3.fromRGB(140,45,45)
+exitBtn.Text = "Exit"
+exitBtn.TextColor3 = Color3.fromRGB(240,220,220)
+exitBtn.Font = Enum.Font.GothamBold
+exitBtn.TextSize = 13
+exitBtn.AutoButtonColor = false
+Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0,6)
+exitBtn.MouseButton1Click:Connect(function()
+    resetAll()
+    Float.Visible = false
+    Main.Visible = false
+end)
+
+-- ============================================================
+-- RESPAWN HOOK
+-- ============================================================
 
 LP.CharacterAdded:Connect(function()
     task.wait(0.5)
